@@ -1,0 +1,107 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif:ital,wght@0,300;0,400;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: "Noto Serif", ui-serif, Georgia, serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-on-primary: #ffffff;
+  --color-outline-variant: #c4c6cc;
+  --color-primary-container: #1a2634;
+  --color-on-tertiary-fixed: #261900;
+  --color-on-surface: #191c1d;
+  --color-error-container: #ffdad6;
+  --color-inverse-on-surface: #f0f1f2;
+  --color-on-primary-container: #818d9f;
+  --color-on-secondary-fixed: #002018;
+  --color-tertiary-fixed: #ffdea5;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-secondary-fixed-variant: #2e4d43;
+  --color-on-secondary: #ffffff;
+  --color-on-surface-variant: #44474c;
+  --color-surface-container-low: #f3f4f5;
+  --color-secondary: #45655a;
+  --color-on-primary-fixed-variant: #3c4857;
+  --color-error: #ba1a1a;
+  --color-surface-variant: #e1e3e4;
+  --color-on-tertiary-container: #aa8743;
+  --color-tertiary-fixed-dim: #e9c176;
+  --color-background: #f8f9fa;
+  --color-surface-container-high: #e7e8e9;
+  --color-surface-tint: #535f6f;
+  --color-secondary-fixed-dim: #accec1;
+  --color-surface-bright: #f8f9fa;
+  --color-primary-fixed: #d7e3f7;
+  --color-on-tertiary-fixed-variant: #5d4201;
+  --color-secondary-container: #c7eadc;
+  --color-on-secondary-container: #4b6b60;
+  --color-outline: #75777c;
+  --color-surface-container-highest: #e1e3e4;
+  --color-surface-dim: #d9dadb;
+  --color-surface: #f8f9fa;
+  --color-on-error-container: #93000a;
+  --color-inverse-primary: #bbc7da;
+  --color-secondary-fixed: #c7eadc;
+  --color-surface-container: #edeeef;
+  --color-inverse-surface: #2e3132;
+  --color-on-primary-fixed: #101c2a;
+  --color-tertiary: #180e00;
+  --color-tertiary-container: #322200;
+  --color-on-tertiary: #ffffff;
+  --color-on-error: #ffffff;
+  --color-on-background: #191c1d;
+  --color-primary: #05111e;
+  --color-primary-fixed-dim: #bbc7da;
+
+  --color-app-bg: var(--color-background);
+  --color-app-sidebar: var(--color-surface-container-low);
+  --color-app-card: var(--color-surface-container-lowest);
+  --color-app-text: var(--color-on-surface);
+  --color-app-text-muted: var(--color-on-surface-variant);
+  --color-app-border: var(--color-outline-variant);
+  --color-app-accent: var(--color-primary);
+  --color-app-accent-bg: var(--color-primary-container);
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply bg-surface-container-low text-on-surface antialiased transition-colors duration-300;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out forwards;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+

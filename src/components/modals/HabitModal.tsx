@@ -73,6 +73,18 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                 onChange={(e) => setNewHabit({ ...newHabit, title: e.target.value })}
               />
             </div>
+            <div>
+              <label className="block text-[9px] font-semibold tracking-widest uppercase dark:text-stone-500 text-stone-600 mb-2">
+                Description (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Build strength daily, Read 20 pages"
+                className="w-full dark:bg-white/5 bg-stone-100 border dark:border-white/10 border-stone-300 rounded-xl px-4 py-3 dark:text-white text-stone-900 placeholder:text-stone-600 focus:outline-none focus:border-orange-500/50 transition-colors"
+                value={newHabit.description || ""}
+                onChange={(e) => setNewHabit({ ...newHabit, description: e.target.value })}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[9px] font-semibold tracking-widest uppercase tracking-widest dark:text-stone-500 text-stone-600 mb-2">
@@ -122,6 +134,40 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                 value={newHabit.due_date || ""}
                 onChange={(e) => setNewHabit({ ...newHabit, due_date: e.target.value })}
               />
+            </div>
+            <div>
+              <label className="block text-[9px] font-semibold tracking-widest uppercase dark:text-stone-500 text-stone-600 mb-3">
+                Accent Color
+              </label>
+              <div className="flex flex-wrap gap-2.5">
+                {[
+                  { value: "#f97316", label: "Orange" },
+                  { value: "#10b981", label: "Emerald" },
+                  { value: "#6366f1", label: "Indigo" },
+                  { value: "#8b5cf6", label: "Violet" },
+                  { value: "#0ea5e9", label: "Sky" },
+                  { value: "#ec4899", label: "Pink" },
+                  { value: "#f59e0b", label: "Amber" },
+                  { value: "#bef264", label: "Lime" },
+                ].map((c) => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    title={c.label}
+                    onClick={() => setNewHabit({ ...newHabit, color: c.value })}
+                    className={cn(
+                      "w-8 h-8 rounded-full transition-all duration-200 border-2",
+                      newHabit.color === c.value
+                        ? "border-white scale-110 shadow-lg"
+                        : "border-transparent hover:scale-105 opacity-70 hover:opacity-100"
+                    )}
+                    style={{
+                      backgroundColor: c.value,
+                      boxShadow: newHabit.color === c.value ? `0 0 12px ${c.value}60` : undefined,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
             <div className="flex gap-4 pt-4">
               <button

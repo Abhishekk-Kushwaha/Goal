@@ -17,7 +17,7 @@ export const Card = ({
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay }}
     className={cn(
-      "dark:bg-[#2A2A28] bg-[#F5F5F3] border dark:border-[#3D3D3B] border-[#E5E5E3] rounded-2xl overflow-hidden shadow-[8px_8px_16px_#E6E6E4,-8px_-8px_16px_#FFFFFF] dark:shadow-[8px_8px_16px_#242422,-8px_-8px_16px_#30302E]",
+      "rounded-xl overflow-hidden border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]",
       className,
     )}
   >

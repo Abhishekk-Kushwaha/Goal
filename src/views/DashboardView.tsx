@@ -164,13 +164,6 @@ export function DashboardView(props: any) {
                   </p>
                 </div>
                 <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                  <button
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                    className="p-2 dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200 rounded-xl dark:text-stone-400 dark:text-stone-500 text-stone-600 hover:dark:text-white text-stone-900 transition-colors flex items-center gap-2"
-                  >
-                    {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                    <span className="text-sm font-medium">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
-                  </button>
                   {supabase && session && (
                     <button
                       onClick={() => supabase.auth.signOut()}
@@ -239,7 +232,7 @@ export function DashboardView(props: any) {
                             ].map((stat, i) => (
                               <Card
                                 key={stat.label}
-                                className="p-5 md:p-6 transition-all duration-500 hover:shadow-xl hover:-translate-y-1 dark:hover:bg-white/[0.02] border border-transparent dark:hover:border-white/5 relative overflow-hidden group"
+                                className="p-5 md:p-6 transition-all duration-500 hover:-translate-y-0.5 hover:bg-white/[0.035] border border-white/[0.06] hover:border-white/[0.09] relative overflow-hidden group"
                               >
                                 {/* Glowing accent bubble */}
                                 <div className={cn("absolute -right-4 -top-4 w-16 h-16 rounded-full blur-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-500", stat.bg)} />
@@ -267,7 +260,7 @@ export function DashboardView(props: any) {
                         return (
                           <Card
                             key="progress"
-                            className="lg:col-span-2 p-6 md:p-8 transition-all duration-500 hover:shadow-xl hover:-translate-y-1 dark:hover:bg-white/[0.02] border border-transparent dark:hover:border-white/5 group"
+                            className="lg:col-span-2 p-6 md:p-8 transition-all duration-500 hover:-translate-y-0.5 hover:bg-white/[0.035] border border-white/[0.06] hover:border-white/[0.09] group"
                             delay={0.2}
                           >
                             <div className="flex justify-between items-center mb-8">
@@ -338,7 +331,7 @@ export function DashboardView(props: any) {
                                   />
                                   <Bar
                                     dataKey="progress"
-                                    radius={[6, 6, 0, 0]}
+                                    radius={[4, 4, 0, 0]}
                                     barSize={32}
                                   >
                                     {chartData.map((entry, index) => (
@@ -358,7 +351,7 @@ export function DashboardView(props: any) {
                         return (
                           <Card
                             key="repeatability"
-                            className="lg:col-span-3 p-6 md:p-8 transition-all duration-500 hover:shadow-xl hover:-translate-y-1 dark:hover:bg-white/[0.02] border border-transparent dark:hover:border-white/5 group"
+                            className="lg:col-span-3 p-6 md:p-8 transition-all duration-500 hover:-translate-y-0.5 hover:bg-white/[0.035] border border-white/[0.06] hover:border-white/[0.09] group"
                             delay={0.25}
                           >
                             <div className="flex items-center justify-between mb-8">
@@ -439,7 +432,7 @@ export function DashboardView(props: any) {
                                     dataKey="Missed"
                                     stackId="a"
                                     fill="#ef4444"
-                                    radius={[6, 6, 0, 0]}
+                                    radius={[4, 4, 0, 0]}
                                     barSize={32}
                                   />
                                 </BarChart>
@@ -451,7 +444,7 @@ export function DashboardView(props: any) {
                         return (
                           <Card
                             key="categories"
-                            className="lg:col-span-1 p-6 md:p-8 transition-all duration-500 hover:shadow-xl hover:-translate-y-1 dark:hover:bg-white/[0.02] border border-transparent dark:hover:border-white/5 flex flex-col justify-between group"
+                            className="lg:col-span-1 p-6 md:p-8 transition-all duration-500 hover:-translate-y-0.5 hover:bg-white/[0.035] border border-white/[0.06] hover:border-white/[0.09] flex flex-col justify-between group"
                             delay={0.25}
                           >
                             <h3 className="text-sm font-bold uppercase tracking-widest dark:text-stone-500 text-stone-600 mb-8">
@@ -513,7 +506,7 @@ export function DashboardView(props: any) {
                         return (
                           <Card
                             key="trends"
-                            className="lg:col-span-2 p-6 md:p-8 transition-all duration-500 hover:shadow-xl hover:-translate-y-1 dark:hover:bg-white/[0.02] border border-transparent dark:hover:border-white/5 group"
+                            className="lg:col-span-2 p-6 md:p-8 transition-all duration-500 hover:-translate-y-0.5 hover:bg-white/[0.035] border border-white/[0.06] hover:border-white/[0.09] group"
                             delay={0.2}
                           >
                             <div className="flex items-center justify-between mb-8">
@@ -614,7 +607,7 @@ export function DashboardView(props: any) {
                             </div>
 
                             <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 pt-8 border-t dark:border-white/5 border-stone-200">
-                              <div className="p-4 rounded-2xl dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200">
+                              <div className="p-4 rounded-xl dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200">
                                 <p className="text-[9px] font-semibold tracking-widest uppercase uppercase tracking-widest dark:text-stone-500 text-stone-600 mb-1">
                                   Peak Performance
                                 </p>
@@ -627,7 +620,7 @@ export function DashboardView(props: any) {
                                   </span>
                                 </div>
                               </div>
-                              <div className="p-4 rounded-2xl dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200">
+                              <div className="p-4 rounded-xl dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200">
                                 <p className="text-[9px] font-semibold tracking-widest uppercase uppercase tracking-widest dark:text-stone-500 text-stone-600 mb-1">
                                   Daily Average
                                 </p>
@@ -640,7 +633,7 @@ export function DashboardView(props: any) {
                                   </span>
                                 </div>
                               </div>
-                              <div className="p-4 rounded-2xl dark:bg-orange-500/10 bg-orange-50 border dark:border-orange-500/20 border-orange-500/10 col-span-full md:col-span-1">
+                              <div className="p-4 rounded-xl dark:bg-orange-500/10 bg-orange-50 border dark:border-orange-500/20 border-orange-500/10 col-span-full md:col-span-1">
                                 <p className="text-[9px] font-semibold tracking-widest uppercase uppercase tracking-widest text-orange-600 dark:text-orange-500 drop-shadow-[0_0_8px_rgba(255,87,34,0.6)] mb-1">
                                   Productivity Insight
                                 </p>
@@ -655,7 +648,7 @@ export function DashboardView(props: any) {
                         return (
                           <Card
                             key="focus"
-                            className="lg:col-span-1 p-6 md:p-8 transition-all duration-500 hover:shadow-xl hover:-translate-y-1 dark:hover:bg-white/[0.02] border border-transparent dark:hover:border-white/5 group"
+                            className="lg:col-span-1 p-6 md:p-8 transition-all duration-500 hover:-translate-y-0.5 hover:bg-white/[0.035] border border-white/[0.06] hover:border-white/[0.09] group"
                             delay={0.3}
                           >
                             <div className="flex justify-between items-center mb-8">

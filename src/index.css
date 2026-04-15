@@ -68,8 +68,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
+  html {
+    background: #090b0f;
+  }
+
   body {
-    @apply bg-surface-container-low text-on-surface antialiased transition-colors duration-300;
+    @apply bg-[#090b0f] text-white antialiased transition-colors duration-300;
   }
 }
 

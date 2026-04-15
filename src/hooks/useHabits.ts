@@ -9,9 +9,11 @@ type UseHabitsOptions = {
 
 const getDefaultHabitForm = (categories: Category[]): Partial<Habit> => ({
   title: "",
+  description: "",
   category: categories[0]?.name || "Health",
   repeat: "Daily",
   due_date: "",
+  color: "",
 });
 
 export function useHabits({ categories }: UseHabitsOptions) {
@@ -53,9 +55,11 @@ export function useHabits({ categories }: UseHabitsOptions) {
     const optimisticHabit = {
       id: tempId,
       title: newHabit.title as string,
+      description: newHabit.description || undefined,
       category: newHabit.category as string,
       repeat: newHabit.repeat as any,
       due_date: newHabit.due_date,
+      color: newHabit.color || undefined,
       created_at: new Date().toISOString(),
       completed_dates: [],
       streak: 0,

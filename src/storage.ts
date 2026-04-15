@@ -26,9 +26,11 @@ function fastParseISO(dateStr: string): Date {
 export interface Habit {
   id: string;
   title: string;
+  description?: string;
   category: string;
   repeat: 'Daily' | 'Weekly' | 'Monthly';
   due_date?: string;
+  color?: string;
   created_at: string;
   completed_dates: string[];
   streak: number;
@@ -652,9 +654,11 @@ export const storage = {
         id: habit.id,
         user_id: user.id,
         title: habit.title,
+        description: habit.description || null,
         category: habit.category,
         repeat: habit.repeat,
         due_date: habit.due_date || null,
+        color: habit.color || null,
         completed_dates: [],
         streak: 0,
         created_at: new Date().toISOString()

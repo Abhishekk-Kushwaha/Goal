@@ -52,11 +52,11 @@ export function CircularProgress({
           strokeLinecap="round"
         />
       </svg>
-      <div className="absolute flex flex-col items-center justify-center">
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
           className={cn(
-            "font-black dark:text-white text-stone-900",
-            size < 100 ? "text-xl" : size < 120 ? "text-2xl" : "text-4xl",
+            "font-black leading-none whitespace-nowrap dark:text-white text-stone-900",
+            size < 70 ? "text-[17px]" : size < 100 ? "text-xl" : size < 120 ? "text-2xl" : "text-4xl",
           )}
         >
           {Math.round(progress)}%

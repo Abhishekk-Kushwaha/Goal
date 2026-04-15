@@ -184,25 +184,18 @@ export default function App() {
     );
   }, [dashboardLayout]);
 
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    const saved = localStorage.getItem("forge_theme");
-    return (saved as "dark" | "light") || "dark";
-  });
+  const theme = "dark";
+  const setTheme = () => {};
 
   useEffect(() => {
-    localStorage.setItem("forge_theme", theme);
+    localStorage.setItem("forge_theme", "dark");
     const root = document.documentElement;
     const body = document.body;
-    if (theme === "dark") {
-      root.classList.add("dark");
-      body.classList.add("dark");
-      root.style.colorScheme = "dark";
-    } else {
-      root.classList.remove("dark");
-      body.classList.remove("dark");
-      root.style.colorScheme = "light";
-    }
-  }, [theme]);
+    root.classList.add("dark");
+    body.classList.add("dark");
+    root.style.colorScheme = "dark";
+    body.style.colorScheme = "dark";
+  }, []);
 
   const {
     categories,
@@ -757,7 +750,7 @@ export default function App() {
   );
   if (isSessionLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center dark:bg-[#242422] bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#090b0f]">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -773,7 +766,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center dark:bg-[#242422] bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#090b0f]">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
@@ -924,7 +917,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex min-h-screen dark:bg-[#242422] bg-white font-sans selection:bg-orange-500/30">
+    <div className="flex min-h-screen bg-[#090b0f] font-sans selection:bg-orange-500/30">
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div
@@ -934,7 +927,7 @@ export default function App() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto h-screen custom-scrollbar flex flex-col relative w-full pb-24 md:pb-0 md:pl-24">
+      <main className="flex-1 overflow-y-auto h-screen custom-scrollbar flex flex-col relative w-full bg-[#090b0f] pb-24 md:pb-0 md:pl-24">
         <ViewContainer view={view} sharedViewProps={sharedViewProps} />
 
         <Sidebar
@@ -1015,8 +1008,6 @@ export default function App() {
     </div>
   );
 }
-
-
 
 
 

@@ -142,7 +142,7 @@ export function GoalsView(props: any) {
             >
 
               {goals.length === 0 ? (
-                <div className="py-32 text-center border border-dashed dark:border-white/5 border-stone-200 rounded-3xl dark:bg-white/[0.01] bg-stone-50">
+                <div className="py-32 text-center border border-dashed dark:border-white/5 border-stone-200 rounded-xl dark:bg-white/[0.01] bg-stone-50">
                   <div className="w-20 h-20 dark:bg-white/5 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Target className="w-10 h-10 dark:text-stone-500 text-stone-600" />
                   </div>
@@ -180,7 +180,7 @@ export function GoalsView(props: any) {
                           setActiveGoalId(goal.id);
                           setView("detail");
                         }}
-                        className="group cursor-pointer relative overflow-hidden rounded-2xl border dark:border-white/[0.06] border-stone-200/80 dark:bg-white/[0.02] bg-white hover:dark:bg-white/[0.04] hover:bg-stone-50 hover:dark:border-white/10 hover:border-stone-300 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/5"
+                        className="group cursor-pointer relative overflow-hidden rounded-xl border dark:border-white/[0.06] border-stone-200/80 dark:bg-white/[0.02] bg-white hover:dark:bg-white/[0.04] hover:bg-stone-50 hover:dark:border-white/10 hover:border-stone-300 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/5"
                       >
                         {/* Category color accent bar */}
                         <div

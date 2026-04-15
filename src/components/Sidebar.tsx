@@ -52,10 +52,10 @@ export function Sidebar(props: {
               )}
               <div
                 className={cn(
-                  "p-1.5 md:p-2 rounded-xl transition-all duration-300",
+                  "p-1.5 md:p-2 rounded-xl transition-transform duration-300",
                   isActive
-                    ? "drop-shadow-[0_0_12px_rgba(255,87,34,0.8)] scale-110"
-                    : "group-hover:scale-110 group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]",
+                    ? "scale-110 drop-shadow-sm"
+                    : "group-hover:scale-110",
                 )}
               >
                 <Icon className="w-5 h-5 md:w-6 md:h-6" />

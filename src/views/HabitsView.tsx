@@ -12,10 +12,12 @@ import {
   Flame, 
   Check, 
   Settings, 
-  CheckCircle2,
-  ChevronRight,
-  TrendingUp
 } from "lucide-react";
+
+const HABIT_SURFACE =
+  "rounded-xl overflow-hidden border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]";
+const HABIT_SURFACE_UNCLIPPED =
+  "rounded-xl border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]";
 
 // --- Sub-components ---
 
@@ -27,17 +29,18 @@ const HabitCard = ({
   setEditingHabit, 
   setNewHabit, 
   setIsAddingHabit,
-  CircularProgress,
+  motion,
   cn 
 }: any) => {
   const cat = categories.find((c: any) => c.name === habit.category) || { color: "#64748b", icon: "✨" };
-  const accentColor = cat.color;
+  // Per-habit color takes priority, falls back to category color
+  const accentColor = habit.color || cat.color;
   const isDoneToday = isCompletedOnDate(habit, new Date());
 
-  // Calculate 30-day heatmap
+  // Calculate roughly 60-day heatmap (4 rows x ~15 columns)
   const heatmapDays = useMemo(() => {
     const end = new Date();
-    const start = subDays(end, 29);
+    const start = subDays(end, 59);
     return eachDayOfInterval({ start, end }).map(date => ({
       date,
       isCompleted: isCompletedOnDate(habit, date)
@@ -54,103 +57,121 @@ const HabitCard = ({
     return Math.round((completedInMonth.length / daysInterval.length) * 100);
   }, [habit, isCompletedOnDate]);
 
+  // Subtitle: use description if available, otherwise fallback to category + repeat
+  const subtitle = habit.description || `${habit.category} · ${habit.repeat}`;
+
   return (
-    <div className="bg-[#1A1A18] border border-white/[0.05] rounded-[2rem] p-6 flex flex-col gap-6 hover:border-white/10 transition-all duration-300 group shadow-2xl">
-      {/* Header Area */}
+    <div className={`${HABIT_SURFACE} p-4 md:p-5 flex flex-col gap-3 md:gap-4 transition-all duration-300 group max-w-full`}>
+      {/* Header Row */}
       <div className="flex justify-between items-start">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 md:gap-4">
+          {/* Circular icon badge */}
           <div 
-            className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-inner bg-opacity-10"
-            style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
+            className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center text-lg md:text-xl shrink-0"
+            style={{ backgroundColor: `${accentColor}18`, color: accentColor }}
           >
             {cat.icon || "✨"}
           </div>
-          <div>
-            <h4 className="text-lg font-bold text-white group-hover:text-white/90 transition-colors tracking-tight">
+          <div className="min-w-0 pr-2">
+            <h4 className="text-[16px] md:text-[17px] font-semibold text-white tracking-tight leading-tight truncate">
               {habit.title}
             </h4>
-            <p className="text-xs text-white/40 font-medium tracking-wide uppercase">
-               Target: {habit.repeat}
+            <p className="text-[12px] md:text-[13px] text-white/38 font-medium mt-0.5 truncate">
+              {subtitle}
             </p>
           </div>
         </div>
 
-        <div 
-          className="px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold"
-          style={{ backgroundColor: `${accentColor}10`, color: accentColor }}
-        >
-          <Flame className="w-3.5 h-3.5" />
-          {habit.streak || 0}
-        </div>
-      </div>
-
-      {/* Heatmap Area */}
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap gap-1.5">
-          {heatmapDays.map((day, i) => (
-            <div
-              key={i}
-              className={cn(
-                "w-3 h-3 rounded-[3px] transition-all duration-500",
-                day.isCompleted 
-                  ? "opacity-100" 
-                  : "bg-white/[0.03] opacity-40"
-              )}
-              style={{ 
-                backgroundColor: day.isCompleted ? accentColor : undefined,
-                boxShadow: day.isCompleted ? `0 0 12px ${accentColor}60` : undefined
-              }}
-              title={format(day.date, 'MMM d')}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Footer Area */}
-      <div className="flex items-center justify-between mt-auto pt-2">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">
-            Monthly Progress
-          </span>
-          <span className="text-sm font-black text-white">
-            {monthlyStats}% <span className="text-xs font-medium text-white/40">consistency</span>
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-           <button
-              onClick={() => {
-                setEditingHabit(habit);
-                setNewHabit(habit);
-                setIsAddingHabit(true);
-              }}
-              className="p-2 text-white/20 hover:text-white/60 transition-colors"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Settings — hover reveal */}
           <button
-            onClick={() => toggleHabitOptimistic(habit.id)}
-            className={cn(
-              "px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 transition-all duration-300",
-              isDoneToday
-                ? "bg-white/5 text-white/40"
-                : "text-white shadow-lg"
-            )}
-            style={{ 
-              backgroundColor: isDoneToday ? undefined : accentColor,
-              boxShadow: isDoneToday ? undefined : `0 4px 12px ${accentColor}40`
+            onClick={() => {
+              setEditingHabit(habit);
+              setNewHabit(habit);
+              setIsAddingHabit(true);
+            }}
+            className="p-2 border border-transparent hover:border-white/[0.08] hover:bg-white/[0.035] rounded-lg text-transparent group-hover:text-white/36 hover:!text-white transition-all duration-200"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+
+          {/* Streak pill — gradient presentation */}
+          <div
+            className="px-2.5 py-1 rounded-lg flex items-center gap-1 text-[12px] font-bold border"
+            style={{
+              backgroundColor: `${accentColor}14`,
+              borderColor: `${accentColor}26`,
+              color: accentColor
             }}
           >
-            {isDoneToday ? (
-              <>
-                <Check className="w-4 h-4" />
-                Completed
-              </>
-            ) : (
-              <>Mark Complete</>
-            )}
-          </button>
+            <Flame className="w-3.5 h-3.5 opacity-90" />
+            <span className="opacity-80 pb-[1px] ml-[1px]">↑</span> {habit.streak || 0}
+          </div>
         </div>
+      </div>
+
+      {/* Heatmap Area - 4-row grid */}
+      <div className="w-full">
+        <div className="grid grid-rows-4 grid-flow-col gap-[3px] opacity-[0.85] overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+          {heatmapDays.map((day, i) => {
+            // Make the visual match the dense varying intensity look in the image.
+            // Some squares are dark orange, some are light orange, etc.
+            const intensity = day.isCompleted ? 0.4 + (Math.sin(day.date.getDate() * 1.5) * 0.3 + 0.3) : 0;
+            return (
+              <motion.div
+                key={i}
+                initial={false}
+                animate={{
+                  backgroundColor: day.isCompleted ? accentColor : '',
+                  opacity: day.isCompleted ? intensity : 1,
+                }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className={cn(
+                  "w-[8px] h-[8px] md:w-[10px] md:h-[10px] rounded-[3px] shrink-0",
+                  !day.isCompleted && "bg-white/[0.08] opacity-70"
+                )}
+                title={format(day.date, 'MMM d')}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Footer Row */}
+      <div className="flex items-center justify-between pt-1">
+        {/* Monthly stat */}
+        <span className="text-[13px]">
+          <span className="font-semibold" style={{ color: accentColor }}>{monthlyStats}%</span>
+          <span className="text-white/32 font-medium ml-1.5">this month</span>
+        </span>
+
+        {/* Action button */}
+        <motion.button
+          onClick={() => toggleHabitOptimistic(habit.id)}
+          whileTap={{ scale: 0.97 }}
+          className={cn(
+            "px-3.5 md:px-4 py-1.5 rounded-lg text-[12px] font-medium flex items-center gap-1.5 transition-all duration-300 border",
+            isDoneToday
+              ? "border-white/[0.04] bg-white/[0.02] text-white/34"
+              : "border-transparent" // overriden by style
+          )}
+          style={{
+            backgroundColor: isDoneToday ? undefined : `${accentColor}1A`,
+            borderColor: isDoneToday ? undefined : `${accentColor}40`,
+            color: isDoneToday ? undefined : accentColor,
+          }}
+        >
+          {isDoneToday ? (
+            <>
+              <Check className="w-3.5 h-3.5" />
+              Completed <span className="text-[9px] ml-1 opacity-50">&gt;</span>
+            </>
+          ) : (
+            <>
+              Mark complete <span className="text-[10px] ml-1.5 opacity-80" style={{color: accentColor}}>&gt;</span>
+            </>
+          )}
+        </motion.button>
       </div>
     </div>
   );
@@ -177,7 +198,6 @@ export function HabitsView(props: any) {
   const stats = useMemo(() => {
     const today = new Date();
     const dueToday = habits.filter((h: any) => {
-      // In a real app we'd use storage.isDueOnDate, but here we simplify
       if (h.repeat === 'Daily') return true;
       const created = new Date(h.created_at || Date.now());
       if (h.repeat === 'Weekly') return today.getDay() === created.getDay();
@@ -190,6 +210,29 @@ export function HabitsView(props: any) {
       completed: completedToday.length,
       percent: dueToday.length > 0 ? Math.round((completedToday.length / dueToday.length) * 100) : 0
     };
+  }, [habits, isCompletedOnDate]);
+
+  // Real monthly consistency across all habits
+  const monthlyConsistency = useMemo(() => {
+    if (habits.length === 0) return 0;
+    const now = new Date();
+    const start = startOfMonth(now);
+    const end = endOfMonth(now);
+    const daysInMonth = eachDayOfInterval({ start, end });
+
+    let totalPoints = 0;
+    let possiblePoints = 0;
+
+    habits.forEach((h: any) => {
+      daysInMonth.forEach(day => {
+        if (day <= now) {
+          possiblePoints++;
+          if (isCompletedOnDate(h, day)) totalPoints++;
+        }
+      });
+    });
+
+    return possiblePoints > 0 ? Math.round((totalPoints / possiblePoints) * 100) : 0;
   }, [habits, isCompletedOnDate]);
 
   const filteredHabits = useMemo(() => {
@@ -216,87 +259,102 @@ export function HabitsView(props: any) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="p-4 md:p-10 max-w-5xl mx-auto w-full flex flex-col gap-10 pb-32 min-h-screen"
+      className="p-4 md:p-8 lg:p-10 max-w-6xl mx-auto w-full flex flex-col gap-5 md:gap-10 pb-28 md:pb-32 min-h-screen pt-5 md:pt-16"
     >
-      {/* Top Summary Card */}
-      <div className="bg-[#1A1A18] border border-white/[0.05] rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden group">
-        <div className="flex flex-col md:flex-row items-center gap-10 md:gap-14 relative z-10">
-          <div className="shrink-0 scale-125 md:scale-150 transform">
-            <CircularProgress progress={stats.percent} size={110} color="#bef264" />
-          </div>
-          
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="text-5xl md:text-6xl font-black text-white tracking-tighter mb-3 leading-none">
-              {stats.percent}% <span className="text-2xl md:text-3xl font-bold text-white/40 block md:inline md:ml-2 tracking-normal">complete</span>
-            </h2>
-            <p className="text-xl text-white/50 font-medium">
-              {stats.total - stats.completed === 0 
-                ? "You've crushed all your habits today! 🔥" 
-                : `${stats.total - stats.completed} habits left to win today`}
-            </p>
+
+      {/* ───── 1. TOP SUMMARY CARD (Replica style) ───── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className={`${HABIT_SURFACE_UNCLIPPED} min-h-[132px] p-4 sm:min-h-[148px] sm:p-6 relative overflow-visible`}
+      >
+        <div className="grid grid-cols-[60px_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-5">
+          <div className="shrink-0 overflow-visible">
+            <CircularProgress progress={stats.percent} size={60} strokeWidth={6} color="#a3e635" />
           </div>
 
-          <div className="hidden lg:flex flex-col items-end gap-1">
-             <div className="flex items-center gap-2 text-lime-400">
-                <TrendingUp className="w-5 h-5" />
-                <span className="text-3xl font-black">91%</span>
-             </div>
-             <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/20">Monthly consistency</span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[24px] sm:text-[28px] font-bold text-white tracking-tight leading-none">
+              {stats.percent}%
+              <span className="ml-2 text-[14px] sm:text-[16px] font-normal text-white/42">complete</span>
+            </h2>
+            <p className="mt-2 text-[13px] sm:text-[14px] text-white/42 font-medium leading-snug">
+              {stats.total - stats.completed === 0
+                ? "All habits crushed today"
+                : `${stats.total - stats.completed} habit${stats.total - stats.completed !== 1 ? 's' : ''} left to win today`}
+            </p>
           </div>
         </div>
 
-        <div className="w-full mt-10 md:mt-12">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-white/20">Daily Progress</span>
-            <span className="text-[10px] font-bold text-lime-400">{stats.percent}%</span>
+        <div className="mt-4 sm:mt-6">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-[12px] font-medium text-white/32 tracking-wide uppercase">Today</span>
+            <span className="text-[13px] font-bold text-[#a3e635]">
+              {monthlyConsistency}% <span className="text-white/24 font-medium ml-1">Avg</span>
+            </span>
           </div>
-          <div className="h-2 w-full bg-white/[0.03] rounded-full overflow-hidden">
-            <motion.div 
+          <div className="h-[4px] w-full bg-white/[0.07] rounded-full overflow-hidden">
+            <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${stats.percent}%` }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="h-full bg-lime-400 rounded-full"
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+              className="h-full rounded-full bg-[#A3E635]"
             />
           </div>
         </div>
+      </motion.div>
+
+      {/* ───── 2. FILTER ROW ───── */}
+      <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          {(['all', 'due today', 'completed'] as const).map((t) => {
+            const filterValue = t === 'due today' ? 'today' : t;
+            return (
+              <button
+                key={t}
+                onClick={() => setFilter(filterValue)}
+                className={cn(
+                  "px-3 sm:px-4 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-200 border tracking-wide whitespace-nowrap",
+                  filter === filterValue
+                    ? "border-white/[0.08] bg-white/[0.08] text-white"
+                    : "border-white/[0.04] bg-[linear-gradient(145deg,rgba(22,26,30,0.78),rgba(13,16,19,0.84))] text-white/38 hover:text-white/62 hover:border-white/[0.07]"
+                )}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            )
+          })}
+        </div>
+
+        <button
+          onClick={() => setIsAddingHabit(true)}
+          className="ml-auto shrink-0 h-8 px-3 rounded-lg border border-[#A3E635]/20 bg-[#A3E635]/10 text-[#A3E635] hover:bg-[#A3E635]/14 transition-colors duration-200 flex items-center justify-center gap-1.5 text-[12px] font-semibold"
+          aria-label="Add habit"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">Add habit</span>
+        </button>
       </div>
 
-      {/* Filter Row */}
-      <div className="flex items-center gap-2 bg-white/[0.03] p-1.5 rounded-2xl w-fit border border-white/[0.05]">
-        {(['all', 'today', 'completed'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setFilter(t)}
-            className={cn(
-              "px-8 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all",
-              filter === t 
-                ? "bg-white/10 text-white shadow-xl" 
-                : "text-white/30 hover:text-white/60"
-            )}
-          >
-            {t === 'today' ? 'Due Today' : t}
-          </button>
-        ))}
-      </div>
-
-      {/* Habits List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* ───── 3. HABIT CARDS ───── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-6">
         <AnimatePresence mode="popLayout">
           {filteredHabits.length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="col-span-full py-24 text-center flex flex-col items-center gap-4 bg-white/[0.01] rounded-[3rem] border border-dashed border-white/10"
+              className="col-span-full py-32 text-center flex flex-col items-center gap-6"
             >
-              <div className="w-20 h-20 bg-lime-400/10 rounded-full flex items-center justify-center text-lime-400 mb-2">
-                <Activity className="w-10 h-10" />
+              <div className="w-20 h-20 border border-white/[0.06] rounded-xl bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] flex items-center justify-center text-white/32">
+                <Activity className="w-8 h-8" />
               </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white mb-1">
-                  Build consistency, one habit at a time
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-[#e4e4e7] tracking-tight">
+                  No habits here yet
                 </h3>
-                <p className="text-white/30 max-w-sm mx-auto text-base">
-                  Create your first habit to start tracking daily progress and building your streaks.
+                <p className="text-[#71717a] max-w-sm mx-auto text-[15px] leading-relaxed">
+                  Start tracking your daily progress to build long-lasting consistency.
                 </p>
               </div>
             </motion.div>
@@ -305,10 +363,10 @@ export function HabitsView(props: any) {
               <motion.div
                 layout
                 key={habit.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
               >
                 <HabitCard 
                   habit={habit} 
@@ -318,7 +376,7 @@ export function HabitsView(props: any) {
                   setEditingHabit={setEditingHabit}
                   setNewHabit={setNewHabit}
                   setIsAddingHabit={setIsAddingHabit}
-                  CircularProgress={CircularProgress}
+                  motion={motion}
                   cn={cn}
                 />
               </motion.div>
@@ -327,15 +385,13 @@ export function HabitsView(props: any) {
         </AnimatePresence>
       </div>
 
-      {/* Bottom Floating Action Button */}
-      <div className="fixed bottom-32 md:bottom-12 left-0 right-0 p-4 flex justify-center pointer-events-none z-50">
+      {/* ───── 4. BOTTOM NEW HABIT BUTTON ───── */}
+      <div className="mt-8 mb-8">
         <button
           onClick={() => setIsAddingHabit(true)}
-          className="pointer-events-auto px-10 py-5 bg-[#1A1A18] text-white rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all flex items-center gap-3 border border-white/10 group"
+          className={`${HABIT_SURFACE} w-full py-4 text-white font-medium text-[15px] flex items-center justify-center gap-2 transition-colors duration-200 hover:border-white/[0.09]`}
         >
-          <div className="bg-lime-400 text-black rounded-full p-1 group-hover:rotate-90 transition-transform">
-            <Plus className="w-4 h-4" />
-          </div>
+          <Plus className="w-5 h-5 text-[#A3E635]" />
           New Habit
         </button>
       </div>

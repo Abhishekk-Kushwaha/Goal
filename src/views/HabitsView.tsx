@@ -19,6 +19,66 @@ const HABIT_SURFACE =
 const HABIT_SURFACE_UNCLIPPED =
   "rounded-xl border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]";
 
+type RgbColor = { r: number; g: number; b: number };
+
+function parseHexColor(color: string): RgbColor {
+  const fallback = { r: 16, g: 185, b: 129 };
+  if (!color || !color.startsWith("#")) return fallback;
+
+  const raw = color.slice(1);
+  const hex = raw.length === 3
+    ? raw.split("").map((char) => `${char}${char}`).join("")
+    : raw;
+
+  if (hex.length !== 6) return fallback;
+
+  const value = Number.parseInt(hex, 16);
+  if (Number.isNaN(value)) return fallback;
+
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  };
+}
+
+function mixColors(base: RgbColor, target: RgbColor, amount: number): RgbColor {
+  return {
+    r: Math.round(base.r + (target.r - base.r) * amount),
+    g: Math.round(base.g + (target.g - base.g) * amount),
+    b: Math.round(base.b + (target.b - base.b) * amount),
+  };
+}
+
+function rgbToString(color: RgbColor, alpha = 1) {
+  return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+}
+
+function createHabitPalette(color: string) {
+  const base = parseHexColor(color);
+  const soft = mixColors(base, { r: 255, g: 255, b: 255 }, 0.1);
+  const bright = mixColors(base, { r: 255, g: 255, b: 255 }, 0.24);
+  const glow = mixColors(base, { r: 255, g: 255, b: 255 }, 0.36);
+  const inactive = mixColors(base, { r: 35, g: 39, b: 44 }, 0.9);
+
+  return {
+    accent: rgbToString(soft),
+    badgeFill: rgbToString(base, 0.13),
+    badgeBorder: rgbToString(base, 0.42),
+    pillFill: rgbToString(base, 0.15),
+    pillBorder: rgbToString(base, 0.42),
+    buttonFill: rgbToString(base, 0.14),
+    buttonBorder: rgbToString(base, 0.42),
+    inactiveDot: rgbToString(inactive, 0.95),
+    completeDots: [
+      rgbToString(base, 0.78),
+      rgbToString(soft, 0.92),
+      rgbToString(bright, 1),
+      rgbToString(glow, 1),
+    ],
+  };
+}
+
 // --- Sub-components ---
 
 const HabitCard = ({ 
@@ -35,6 +95,7 @@ const HabitCard = ({
   const cat = categories.find((c: any) => c.name === habit.category) || { color: "#64748b", icon: "✨" };
   // Per-habit color takes priority, falls back to category color
   const accentColor = habit.color || cat.color;
+  const palette = useMemo(() => createHabitPalette(accentColor), [accentColor]);
   const isDoneToday = isCompletedOnDate(habit, new Date());
 
   // Calculate roughly 60-day heatmap (4 rows x ~15 columns)
@@ -66,9 +127,13 @@ const HabitCard = ({
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-3 md:gap-4">
           {/* Circular icon badge */}
-          <div 
-            className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center text-lg md:text-xl shrink-0"
-            style={{ backgroundColor: `${accentColor}18`, color: accentColor }}
+          <div
+            className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center text-lg md:text-xl shrink-0 border"
+            style={{
+              backgroundColor: palette.badgeFill,
+              borderColor: palette.badgeBorder,
+              color: palette.accent
+            }}
           >
             {cat.icon || "✨"}
           </div>
@@ -99,9 +164,9 @@ const HabitCard = ({
           <div
             className="px-2.5 py-1 rounded-lg flex items-center gap-1 text-[12px] font-bold border"
             style={{
-              backgroundColor: `${accentColor}14`,
-              borderColor: `${accentColor}26`,
-              color: accentColor
+              backgroundColor: palette.pillFill,
+              borderColor: palette.pillBorder,
+              color: palette.accent
             }}
           >
             <Flame className="w-3.5 h-3.5 opacity-90" />
@@ -112,24 +177,19 @@ const HabitCard = ({
 
       {/* Heatmap Area - 4-row grid */}
       <div className="w-full">
-        <div className="grid grid-rows-4 grid-flow-col gap-[3px] opacity-[0.85] overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
+        <div className="grid grid-rows-4 grid-flow-col gap-[3px] overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none' }}>
           {heatmapDays.map((day, i) => {
-            // Make the visual match the dense varying intensity look in the image.
-            // Some squares are dark orange, some are light orange, etc.
-            const intensity = day.isCompleted ? 0.4 + (Math.sin(day.date.getDate() * 1.5) * 0.3 + 0.3) : 0;
+            const tone = palette.completeDots[(day.date.getDate() + i) % palette.completeDots.length];
             return (
               <motion.div
                 key={i}
                 initial={false}
                 animate={{
-                  backgroundColor: day.isCompleted ? accentColor : '',
-                  opacity: day.isCompleted ? intensity : 1,
+                  opacity: day.isCompleted ? 1 : 0.72,
                 }}
+                style={{ backgroundColor: day.isCompleted ? tone : palette.inactiveDot }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className={cn(
-                  "w-[8px] h-[8px] md:w-[10px] md:h-[10px] rounded-[3px] shrink-0",
-                  !day.isCompleted && "bg-white/[0.08] opacity-70"
-                )}
+                className="w-[8px] h-[8px] md:w-[10px] md:h-[10px] rounded-[3px] shrink-0"
                 title={format(day.date, 'MMM d')}
               />
             );
@@ -141,7 +201,7 @@ const HabitCard = ({
       <div className="flex items-center justify-between pt-1">
         {/* Monthly stat */}
         <span className="text-[13px]">
-          <span className="font-semibold" style={{ color: accentColor }}>{monthlyStats}%</span>
+          <span className="font-semibold" style={{ color: palette.accent }}>{monthlyStats}%</span>
           <span className="text-white/32 font-medium ml-1.5">this month</span>
         </span>
 
@@ -156,9 +216,9 @@ const HabitCard = ({
               : "border-transparent" // overriden by style
           )}
           style={{
-            backgroundColor: isDoneToday ? undefined : `${accentColor}1A`,
-            borderColor: isDoneToday ? undefined : `${accentColor}40`,
-            color: isDoneToday ? undefined : accentColor,
+            backgroundColor: isDoneToday ? undefined : palette.buttonFill,
+            borderColor: isDoneToday ? undefined : palette.buttonBorder,
+            color: isDoneToday ? undefined : palette.accent,
           }}
         >
           {isDoneToday ? (
@@ -168,7 +228,7 @@ const HabitCard = ({
             </>
           ) : (
             <>
-              Mark complete <span className="text-[10px] ml-1.5 opacity-80" style={{color: accentColor}}>&gt;</span>
+              Mark complete <span className="text-[10px] ml-1.5 opacity-80" style={{color: palette.accent}}>&gt;</span>
             </>
           )}
         </motion.button>

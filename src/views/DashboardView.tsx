@@ -109,6 +109,15 @@ export function DashboardView(props: any) {
     setBreatherTimeout,
     setShowBreather,
     setSlidingOut,
+    requestInstallApp,
+    showInstallHelp,
+    setShowInstallHelp,
+    installPlatform,
+    isAppInstalled,
+    notificationsSupported,
+    notificationPermission,
+    notificationSettings,
+    setShowNotificationSettings,
     goals,
     habits,
     categories,
@@ -164,6 +173,33 @@ export function DashboardView(props: any) {
                   </p>
                 </div>
                 <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                  <button
+                    onClick={() => setShowNotificationSettings(true)}
+                    className={cn(
+                      "px-4 py-2 rounded-xl border transition-colors flex items-center gap-2 text-sm font-medium",
+                      notificationSettings.enabled && notificationPermission === "granted"
+                        ? "dark:bg-emerald-500/10 bg-emerald-50 border-emerald-400/20 text-emerald-400"
+                        : "dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200 dark:text-stone-300 text-stone-700 hover:dark:text-white hover:text-stone-900",
+                    )}
+                    disabled={!notificationsSupported}
+                  >
+                    <span>
+                      {notificationSettings.enabled && notificationPermission === "granted"
+                        ? "Notifications On"
+                        : "Notifications"}
+                    </span>
+                  </button>
+                  <button
+                    onClick={requestInstallApp}
+                    className={cn(
+                      "px-4 py-2 rounded-xl border transition-colors flex items-center gap-2 text-sm font-medium",
+                      isAppInstalled
+                        ? "dark:bg-emerald-500/10 bg-emerald-50 border-emerald-400/20 text-emerald-400"
+                        : "dark:bg-sky-500/10 bg-sky-50 border-sky-400/20 text-sky-400 hover:dark:bg-sky-500/15 hover:bg-sky-100",
+                    )}
+                  >
+                    <span>{isAppInstalled ? "App Installed" : "Install App"}</span>
+                  </button>
                   {supabase && session && (
                     <button
                       onClick={() => supabase.auth.signOut()}
@@ -726,6 +762,73 @@ export function DashboardView(props: any) {
                     }
                   })}
               </div>
+
+              <AnimatePresence>
+                {showInstallHelp && !isAppInstalled && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                      className="w-full max-w-md rounded-3xl border dark:border-white/10 border-stone-200 dark:bg-[#0f141d] bg-white p-6 shadow-2xl"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-400">
+                            Install GoalForge
+                          </p>
+                          <h3 className="mt-2 text-2xl font-bold dark:text-white text-stone-900">
+                            Add the app to your device
+                          </h3>
+                        </div>
+                        <button
+                          onClick={() => setShowInstallHelp(false)}
+                          className="rounded-xl border dark:border-white/10 border-stone-200 px-2.5 py-2 dark:text-stone-400 text-stone-500 hover:dark:text-white hover:text-stone-900 transition-colors"
+                          aria-label="Close install help"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <p className="mt-3 text-sm leading-6 dark:text-stone-400 text-stone-600">
+                        {installPlatform === "ios"
+                          ? "On iPhone, Safari does not show the standard install popup. Use the Share menu to add GoalForge to your home screen."
+                          : "Your browser did not expose the install popup right now, but you can still install GoalForge from the browser menu."}
+                      </p>
+
+                      <div className="mt-5 rounded-2xl border dark:border-white/6 border-stone-200 dark:bg-white/[0.03] bg-stone-50 p-4">
+                        {installPlatform === "ios" ? (
+                          <div className="space-y-3 text-sm dark:text-stone-300 text-stone-700">
+                            <p>1. Open this app in Safari.</p>
+                            <p>2. Tap the Share button.</p>
+                            <p>3. Tap <span className="font-semibold">Add to Home Screen</span>.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 text-sm dark:text-stone-300 text-stone-700">
+                            <p>1. Open the browser menu.</p>
+                            <p>2. Choose <span className="font-semibold">Install app</span> or <span className="font-semibold">Add to Home screen</span>.</p>
+                            <p>3. Confirm the install prompt.</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-6 flex justify-end">
+                        <button
+                          onClick={() => setShowInstallHelp(false)}
+                          className="rounded-full border border-sky-400/20 bg-sky-400/10 px-5 py-2.5 text-sm font-semibold text-sky-400"
+                        >
+                          Got it
+                        </button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
   );
 }

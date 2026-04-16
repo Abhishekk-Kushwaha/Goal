@@ -92,6 +92,7 @@ import { useAppInteractions } from "./hooks/useAppInteractions";
 import { useGoals } from "./hooks/useGoals";
 import { useHabits } from "./hooks/useHabits";
 import { useToday } from "./hooks/useToday";
+import { useNotifications } from "./hooks/useNotifications";
 import { useSessionState } from "./hooks/useSessionState";
 import { useCategories } from "./hooks/useCategories";
 import { useCalendarData } from "./hooks/useCalendarData";
@@ -140,6 +141,11 @@ interface WidgetConfig {
   visible: boolean;
   label: string;
 }
+
+type InstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
 
 // Tooltips extracted
 
@@ -255,6 +261,12 @@ export default function App() {
   const [featuredGoalId, setFeaturedGoalId] = useState<string | null>(() => {
     return localStorage.getItem("forge_featured_goal_id");
   });
+  const [installPromptEvent, setInstallPromptEvent] =
+    useState<InstallPromptEvent | null>(null);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [installPlatform, setInstallPlatform] = useState<
+    "prompt" | "ios" | "manual" | "installed"
+  >("manual");
 
   useEffect(() => {
     if (featuredGoalId) {
@@ -276,6 +288,66 @@ export default function App() {
 
     setFeaturedGoalId(goals[0].id);
   }, [featuredGoalId, goals]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true;
+
+    if (isStandalone) {
+      setInstallPlatform("installed");
+      return;
+    }
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isSafari =
+      /safari/.test(userAgent) &&
+      !/crios|fxios|edgios|chrome|android/.test(userAgent);
+
+    setInstallPlatform(isIOS && isSafari ? "ios" : "manual");
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event as InstallPromptEvent);
+      setInstallPlatform("prompt");
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPromptEvent(null);
+      setInstallPlatform("installed");
+      setShowInstallHelp(false);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const requestInstallApp = async () => {
+    if (installPlatform === "installed") return;
+
+    if (installPromptEvent) {
+      await installPromptEvent.prompt();
+      try {
+        await installPromptEvent.userChoice;
+      } finally {
+        setInstallPromptEvent(null);
+      }
+      return;
+    }
+
+    setShowInstallHelp(true);
+  };
 
   const fetchGoals = async () => {
     await Promise.all([fetchGoalList(), fetchHabits()]);
@@ -319,6 +391,25 @@ export default function App() {
     habits,
     categories,
     setGoals,
+  });
+
+  const {
+    permission: notificationPermission,
+    settings: notificationSettings,
+    showPrompt: showNotificationPrompt,
+    setShowPrompt: setShowNotificationPrompt,
+    showSettings: showNotificationSettings,
+    setShowSettings: setShowNotificationSettings,
+    requestPermission: requestNotificationPermission,
+    dismissPrompt: dismissNotificationPrompt,
+    updateSettings: updateNotificationSettings,
+    isSupported: notificationsSupported,
+    todayOpenCount: notificationTodayOpenCount,
+    overdueCount: notificationOverdueCount,
+    tomorrowOpenCount: notificationTomorrowOpenCount,
+  } = useNotifications({
+    allCalendarItems,
+    getItemsForDate,
   });
 
   useEffect(() => {
@@ -901,6 +992,21 @@ export default function App() {
     setBreatherTimeout,
     setShowBreather,
     setSlidingOut,
+    requestInstallApp,
+    showInstallHelp,
+    setShowInstallHelp,
+    installPlatform,
+    isAppInstalled: installPlatform === "installed",
+    notificationsSupported,
+    notificationPermission,
+    notificationSettings,
+    showNotificationSettings,
+    setShowNotificationSettings,
+    requestNotificationPermission,
+    updateNotificationSettings,
+    notificationTodayOpenCount,
+    notificationOverdueCount,
+    notificationTomorrowOpenCount,
     featuredGoalId,
     setFeaturedGoalId,
     goals,
@@ -962,6 +1068,270 @@ export default function App() {
           setActiveGoalId={setActiveGoalId}
         />
       </main>
+
+      <AnimatePresence>
+        {showNotificationPrompt && notificationsSupported && notificationPermission === "default" && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[115] flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm md:items-center"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              className="w-full max-w-md rounded-[28px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(20,28,43,0.96),rgba(11,18,29,0.98))] p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,1)]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-400">
+                    Stay in Sync
+                  </p>
+                  <h3 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-white">
+                    Turn on GoalForge notifications
+                  </h3>
+                </div>
+                <button
+                  onClick={dismissNotificationPrompt}
+                  className="rounded-xl border border-white/10 p-2 text-white/60 hover:text-white transition-colors"
+                  aria-label="Close notification prompt"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="mt-3 text-sm leading-6 text-white/66">
+                We can remind you about unfinished tasks today, overdue work,
+                and what&apos;s due tomorrow. You stay in control from the
+                dashboard settings.
+              </p>
+
+              <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 text-sm text-white/74">
+                <p>Notifications we&apos;ll send:</p>
+                <p className="mt-2">• Daily focus reminder at your chosen time</p>
+                <p>• Overdue digest after 9:00 AM</p>
+                <p>• Tomorrow preview in the evening</p>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  onClick={dismissNotificationPrompt}
+                  className="rounded-full border border-white/[0.1] bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white/78"
+                >
+                  Not now
+                </button>
+                <button
+                  onClick={requestNotificationPermission}
+                  className="rounded-full border border-sky-300/16 bg-[linear-gradient(180deg,rgba(88,124,205,0.82),rgba(51,74,126,0.96))] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_-20px_rgba(88,124,205,1)]"
+                >
+                  Turn On Notifications
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showNotificationSettings && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[116] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm md:items-center"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              className="w-full max-w-lg rounded-[30px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(20,28,43,0.96),rgba(11,18,29,0.98))] p-6 shadow-[0_34px_90px_-42px_rgba(0,0,0,1)]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-400">
+                    Notifications
+                  </p>
+                  <h3 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-white">
+                    Control your reminders
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowNotificationSettings(false)}
+                  className="rounded-xl border border-white/10 p-2 text-white/60 hover:text-white transition-colors"
+                  aria-label="Close notification settings"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      Permission status
+                    </p>
+                    <p className="mt-1 text-sm text-white/64">
+                      {notificationPermission === "granted"
+                        ? "Notifications are enabled for GoalForge."
+                        : notificationPermission === "denied"
+                          ? "Browser notifications are blocked. Enable them in your browser settings first."
+                          : "Notifications are not enabled yet."}
+                    </p>
+                  </div>
+                  {notificationPermission !== "granted" && notificationsSupported && (
+                    <button
+                      onClick={requestNotificationPermission}
+                      className="shrink-0 rounded-full border border-sky-300/16 bg-sky-400/10 px-4 py-2 text-sm font-semibold text-sky-300"
+                    >
+                      Enable
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  if (!notificationSettings.enabled && notificationPermission !== "granted") {
+                    const result = await requestNotificationPermission();
+                    if (result !== "granted") return;
+                  }
+                  updateNotificationSettings({
+                    enabled: !notificationSettings.enabled,
+                  });
+                }}
+                className="mt-4 flex w-full items-start justify-between gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 text-left"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    Allow GoalForge notifications
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-white/60">
+                    Master switch for all reminders from the app.
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    "mt-1 flex h-7 w-12 shrink-0 rounded-full border p-1 transition-colors",
+                    notificationSettings.enabled
+                      ? "border-sky-300/20 bg-sky-400/18 justify-end"
+                      : "border-white/[0.08] bg-white/[0.04] justify-start",
+                  )}
+                >
+                  <span className="block h-5 w-5 rounded-full bg-white" />
+                </div>
+              </button>
+
+              <div className="mt-5 space-y-3">
+                {[
+                  {
+                    label: "Daily focus reminder",
+                    description: "Remind me about unfinished work today at my chosen time.",
+                    checked: notificationSettings.dailyFocusReminder,
+                    onChange: () =>
+                      updateNotificationSettings({
+                        dailyFocusReminder: !notificationSettings.dailyFocusReminder,
+                      }),
+                  },
+                  {
+                    label: "Overdue digest",
+                    description: "Send one reminder when overdue items are waiting for me.",
+                    checked: notificationSettings.overdueDigest,
+                    onChange: () =>
+                      updateNotificationSettings({
+                        overdueDigest: !notificationSettings.overdueDigest,
+                      }),
+                  },
+                  {
+                    label: "Tomorrow preview",
+                    description: "Tell me in the evening what is already due tomorrow.",
+                    checked: notificationSettings.tomorrowPreview,
+                    onChange: () =>
+                      updateNotificationSettings({
+                        tomorrowPreview: !notificationSettings.tomorrowPreview,
+                      }),
+                  },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    onClick={item.onChange}
+                    className="flex w-full items-start justify-between gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 text-left"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-white">{item.label}</p>
+                      <p className="mt-1 text-sm leading-6 text-white/60">
+                        {item.description}
+                      </p>
+                    </div>
+                    <div
+                      className={cn(
+                        "mt-1 flex h-7 w-12 shrink-0 rounded-full border p-1 transition-colors",
+                        item.checked
+                          ? "border-sky-300/20 bg-sky-400/18 justify-end"
+                          : "border-white/[0.08] bg-white/[0.04] justify-start",
+                      )}
+                    >
+                      <span className="block h-5 w-5 rounded-full bg-white" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">
+                      Daily reminder time
+                    </p>
+                    <p className="mt-1 text-sm text-white/60">
+                      Used for your daily focus reminder.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={23}
+                      value={notificationSettings.reminderHour}
+                      onChange={(e) =>
+                        updateNotificationSettings({
+                          reminderHour: Math.max(
+                            0,
+                            Math.min(23, Number(e.target.value) || 0),
+                          ),
+                        })
+                      }
+                      className="w-16 rounded-xl border border-white/[0.08] bg-[#0e1521] px-3 py-2 text-center text-sm font-semibold text-white outline-none"
+                    />
+                    <span className="text-white/55">:</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={notificationSettings.reminderMinute}
+                      onChange={(e) =>
+                        updateNotificationSettings({
+                          reminderMinute: Math.max(
+                            0,
+                            Math.min(59, Number(e.target.value) || 0),
+                          ),
+                        })
+                      }
+                      className="w-16 rounded-xl border border-white/[0.08] bg-[#0e1521] px-3 py-2 text-center text-sm font-semibold text-white outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 text-sm text-white/68">
+                <p>Open today: {notificationTodayOpenCount}</p>
+                <p className="mt-1">Overdue: {notificationOverdueCount}</p>
+                <p className="mt-1">Due tomorrow: {notificationTomorrowOpenCount}</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
             <AnimatePresence>
         <CustomizeDashboardModal
@@ -1034,5 +1404,3 @@ export default function App() {
     </div>
   );
 }
-
-

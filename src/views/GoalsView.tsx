@@ -175,13 +175,13 @@ export function GoalsView(props: any) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="relative min-h-screen bg-[#0a101b] px-4 pb-36 pt-4 text-white md:px-8 md:pb-10"
+      className="relative min-h-screen bg-[#0a101b] px-2 pb-36 pt-4 text-white md:px-8 md:pb-10"
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_10%,rgba(140,168,255,0.16),transparent_26%),radial-gradient(circle_at_18%_28%,rgba(108,165,255,0.08),transparent_30%),linear-gradient(180deg,#101826_0%,#0b1220_42%,#09111c_100%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-80 bg-[radial-gradient(circle_at_50%_-8%,rgba(255,255,255,0.07),transparent_30%),radial-gradient(circle_at_0%_100%,rgba(0,0,0,0.28),transparent_40%),radial-gradient(circle_at_100%_100%,rgba(0,0,0,0.2),transparent_34%)]" />
 
       <div className="relative mx-auto w-full max-w-5xl pb-24">
-          <header className="relative flex h-[76px] items-center justify-between px-4">
+          <header className="relative flex h-[76px] items-center justify-between px-2">
             <button
               type="button"
               aria-label="Menu"
@@ -207,7 +207,7 @@ export function GoalsView(props: any) {
             </button>
           </header>
 
-          <div className="space-y-[18px] px-4 pb-28 pt-[10px]">
+          <div className="space-y-[18px] px-2 pb-28 pt-[10px]">
             {visibleGoals.length === 0 ? (
               <div className="rounded-[24px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(47,61,88,0.36),rgba(20,28,43,0.34))] px-6 py-12 text-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.7)]">
                 <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03]">

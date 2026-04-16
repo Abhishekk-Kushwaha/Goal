@@ -1,5 +1,10 @@
 import AppContent from "./AppContent";
+import { AppErrorBoundary } from "./components/AppErrorBoundary";
 
 export default function App() {
-  return <AppContent />;
+  return (
+    <AppErrorBoundary>
+      <AppContent />
+    </AppErrorBoundary>
+  );
 }

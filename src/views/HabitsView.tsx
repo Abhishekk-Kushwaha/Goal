@@ -97,6 +97,11 @@ const HabitCard = ({
   const accentColor = habit.color || cat.color;
   const palette = useMemo(() => createHabitPalette(accentColor), [accentColor]);
   const isDoneToday = isCompletedOnDate(habit, new Date());
+  const openEditHabit = () => {
+    setEditingHabit(habit);
+    setNewHabit(habit);
+    setIsAddingHabit(true);
+  };
 
   // Calculate roughly 60-day heatmap (4 rows x ~15 columns)
   const heatmapDays = useMemo(() => {
@@ -122,7 +127,14 @@ const HabitCard = ({
   const subtitle = habit.description || `${habit.category} · ${habit.repeat}`;
 
   return (
-    <div className={`${HABIT_SURFACE} p-4 md:p-5 flex flex-col gap-3 md:gap-4 transition-all duration-300 group max-w-full`}>
+    <div
+      onClick={() => {
+        if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+          openEditHabit();
+        }
+      }}
+      className={`${HABIT_SURFACE} p-4 md:p-5 flex flex-col gap-3 md:gap-4 transition-all duration-300 group max-w-full cursor-pointer md:cursor-default`}
+    >
       {/* Header Row */}
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-3 md:gap-4">
@@ -150,10 +162,9 @@ const HabitCard = ({
         <div className="flex items-center gap-2 shrink-0">
           {/* Settings — hover reveal */}
           <button
-            onClick={() => {
-              setEditingHabit(habit);
-              setNewHabit(habit);
-              setIsAddingHabit(true);
+            onClick={(event) => {
+              event.stopPropagation();
+              openEditHabit();
             }}
             className="p-2 border border-transparent hover:border-white/[0.08] hover:bg-white/[0.035] rounded-lg text-transparent group-hover:text-white/36 hover:!text-white transition-all duration-200"
           >
@@ -207,7 +218,10 @@ const HabitCard = ({
 
         {/* Action button */}
         <motion.button
-          onClick={() => toggleHabitOptimistic(habit.id)}
+          onClick={(event) => {
+            event.stopPropagation();
+            toggleHabitOptimistic(habit.id);
+          }}
           whileTap={{ scale: 0.97 }}
           className={cn(
             "px-3.5 md:px-4 py-1.5 rounded-lg text-[12px] font-medium flex items-center gap-1.5 transition-all duration-300 border",

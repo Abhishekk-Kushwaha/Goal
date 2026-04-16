@@ -9,7 +9,6 @@ type UseHabitsOptions = {
 
 const getDefaultHabitForm = (categories: Category[]): Partial<Habit> => ({
   title: "",
-  description: "",
   category: categories[0]?.name || "Health",
   repeat: "Daily",
   due_date: "",

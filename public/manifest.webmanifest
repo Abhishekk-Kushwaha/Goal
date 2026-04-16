@@ -1,0 +1,25 @@
+{
+  "name": "GoalForge",
+  "short_name": "GoalForge",
+  "description": "A focused goal, planner, and habit tracking app built for momentum.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090b0f",
+  "theme_color": "#090b0f",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

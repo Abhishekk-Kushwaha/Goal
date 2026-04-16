@@ -1,272 +1,420 @@
 import React from "react";
 
+const HERO_RING = 320.44;
+const SUMMARY_RING = 119.38;
+
+function getDaysUntil(dateStr: string | undefined) {
+  if (!dateStr) return null;
+  const target = new Date(dateStr);
+  if (Number.isNaN(target.getTime())) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function formatDueText(daysLeft: number | null) {
+  if (daysLeft === null) return "No deadline";
+  if (daysLeft < 0) return `Due ${Math.abs(daysLeft)} day${Math.abs(daysLeft) === 1 ? "" : "s"} ago`;
+  if (daysLeft === 0) return "Due today";
+  if (daysLeft === 1) return "Due tomorrow";
+  return `Due in ${daysLeft} days`;
+}
+
+function formatCompactDueText(daysLeft: number | null, progress: number) {
+  if (progress >= 100) return "Completed";
+  if (daysLeft === null) return "On track";
+  if (daysLeft < 0) return `${Math.abs(daysLeft)} day${Math.abs(daysLeft) === 1 ? "" : "s"} overdue`;
+  if (daysLeft === 0) return "Due today";
+  if (daysLeft <= 7) return `Due in ${daysLeft} days`;
+  return `Due ${daysLeft}d`;
+}
+
+function getAccentColor(goal: any, fallback: string) {
+  if ((goal.category || "").toLowerCase().includes("health")) return "#7ce5bd";
+  if ((goal.category || "").toLowerCase().includes("finance")) return "#f5b955";
+  if ((goal.category || "").toLowerCase().includes("learn")) return "#f4b560";
+  if (goal.priority === "High") return "#67b8ff";
+  return fallback;
+}
+
+function getCompactValue(goal: any, progressVal: number) {
+  if ((goal.category || "").toLowerCase().includes("finance")) {
+    const total = goal.note?.match(/₹[\d,]+/)?.[0];
+    const saved = goal.note?.match(/saved[:\s-]+(₹[\d,]+)/i)?.[1];
+    return saved || total || `${progressVal}%`;
+  }
+  return `${progressVal}%`;
+}
+
+function truncateText(text: string | undefined, maxLength: number) {
+  if (!text) return "";
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
+}
+
 export function GoalsView(props: any) {
   const {
     motion,
-    AnimatePresence,
-    DndContext,
-    DragOverlay,
-    defaultDropAnimationSideEffects,
-    cn,
-    format,
-    parseISO,
-    addMonths,
-    subMonths,
-    startOfMonth,
-    endOfMonth,
-    startOfWeek,
-    endOfWeek,
-    eachDayOfInterval,
-    isSameMonth,
-    isSameDay,
-    isToday,
-    isPast,
-    PlannerView,
-    AssignTasksView,
-    Card,
-    Badge,
-    DraggableMilestone,
-    DroppableCalendarDay,
-    CircularProgress,
-    CustomBarTooltip,
-    CustomTooltip,
-    PRIORITY_COLORS,
-    isValidDate,
-    isCompletedOnDate,
     setView,
-    setTheme,
-    setSelectedDate,
     setActiveGoalId,
-    setCurrentMonth,
-    setIsFocusMode,
     setIsAddingGoal,
-    setIsAddingHabit,
-    setIsAddingMilestone,
-    setIsCustomizingLayout,
-    setDismissedConquered,
-    setNewMilestone,
-    setEditingGoal,
-    setNewGoal,
-    setEditingHabit,
-    setNewHabit,
-    toggleHabitOptimistic,
-    toggleGoalCompletionOptimistic,
-    toggleMilestone,
-    deleteMilestone,
-    editMilestone,
-    handleAddPlannerTask,
-    handleDeleteGoal,
-    handleDeleteHabit,
-    handleDeleteCategory,
-    handleMarkAllDone,
-    handleToggleToday,
-    handleArenaComplete,
-    handleCalendarDragStart,
-    handleCalendarDragEnd,
-    fetchGoals,
-    session,
-    supabase,
-    theme,
-    currentDate,
-    dashboardLayout,
-    stats,
-    chartData,
-    repeatabilityData,
-    categoryData,
-    trendData,
-    productivityInsights,
-    currentMonth,
-    selectedDate,
-    milestonesForSelectedDate,
-    todayMilestones,
-    todayProgress,
-    yesterdayProgress,
-    yesterdayCompletedCount,
-    dismissedConquered,
-    personalBest,
-    highestStreak,
-    barPulse,
-    floatingPoints,
-    slidingOut,
-    showBreather,
-    breatherMessage,
-    lastCompleted,
-    breatherTimeout,
-    setBreatherTimeout,
-    setShowBreather,
-    setSlidingOut,
+    featuredGoalId,
+    setFeaturedGoalId,
     goals,
-    habits,
     categories,
-    activeGoal,
-    activeGoalId,
-    unassignedMilestones,
-    sensors,
-    activeCalendarDragId,
-    activeCalendarMilestone,
-    getItemsForDate,
-    getHeroTheme,
-    getBarColor,
-    getHypeText,
-    getStreakMessage,
-    X,
-    Zap,
     Plus,
-    CheckCircle2,
-    TrendingUp,
-    TrendingDown,
-    Trophy,
     Target,
-    Settings,
-    Trash2,
     ChevronRight,
-    ArrowLeft,
-    Activity,
-    Flame,
-    Calendar,
-    CalendarDays,
-    Sun,
-    Moon,
-    Award,
-    Clock,
-    LayoutDashboard,
-    User,
   } = props;
+
+  const visibleGoals = React.useMemo(
+    () => goals.filter((goal: any) => goal.title !== "General Tasks"),
+    [goals],
+  );
+
+  const enrichedGoals = React.useMemo(() => {
+    return visibleGoals.map((goal: any) => {
+      const category =
+        categories.find((c: any) => c.name === goal.category) || {
+          color: "#67b8ff",
+          icon: "•",
+        };
+      const milestones = goal.milestones || [];
+      const progressVal = Math.max(0, Math.min(100, Math.round(goal.progress || 0)));
+      const milestoneDone = milestones.filter((m: any) => m.done).length;
+      const milestoneTotal = milestones.length;
+      const remainingMilestones = Math.max(milestoneTotal - milestoneDone, 0);
+      const nextMilestone =
+        [...milestones]
+          .filter((m: any) => !m.done)
+          .sort((a: any, b: any) => {
+            const aTime = a?.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER;
+            const bTime = b?.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER;
+            return aTime - bTime;
+          })[0] || null;
+      const daysLeft = getDaysUntil(goal.deadline);
+      const needsAttention =
+        progressVal < 100 &&
+        ((daysLeft !== null && daysLeft < 0) ||
+          (goal.priority === "High" && progressVal < 45) ||
+          (daysLeft !== null && daysLeft <= 5 && progressVal < 70));
+      const accent = getAccentColor(goal, category.color || "#67b8ff");
+
+      let score = 0;
+      if (progressVal < 100) score += 140;
+      if (goal.priority === "High") score += 40;
+      if (goal.priority === "Medium") score += 20;
+      if (daysLeft !== null && daysLeft < 0) score += 70;
+      if (daysLeft !== null && daysLeft >= 0) score += Math.max(0, 15 - daysLeft);
+      score += remainingMilestones * 3;
+      score += Math.max(0, 100 - progressVal) * 0.25;
+
+      return {
+        ...goal,
+        category,
+        accent,
+        progressVal,
+        milestoneDone,
+        milestoneTotal,
+        nextMilestone,
+        daysLeft,
+        needsAttention,
+        dueText: formatDueText(daysLeft),
+        compactDueText: formatCompactDueText(daysLeft, progressVal),
+        compactMetaLeft: nextMilestone
+          ? `Next: ${nextMilestone.title}`
+          : milestoneTotal > 0
+            ? `${milestoneDone} / ${milestoneTotal} completed`
+            : "Add milestones",
+        heroMeta: nextMilestone
+          ? `Next: ${truncateText(nextMilestone.title, 22)}`
+          : progressVal >= 100
+            ? "All milestones complete"
+            : "No milestone scheduled yet",
+        summaryValue: getCompactValue(goal, progressVal),
+        statusLabel: needsAttention
+          ? "Needs focus"
+          : progressVal >= 100
+            ? "Completed"
+            : "On track",
+        score,
+      };
+    });
+  }, [categories, visibleGoals]);
+
+  const sortedGoals = React.useMemo(
+    () => [...enrichedGoals].sort((a, b) => b.score - a.score),
+    [enrichedGoals],
+  );
+
+  const featuredGoal =
+    sortedGoals.find((goal) => goal.id === featuredGoalId) || sortedGoals[0] || null;
+  const compactGoals = featuredGoal
+    ? sortedGoals.filter((goal) => goal.id !== featuredGoal.id)
+    : sortedGoals;
+
+  const activeGoalsCount = enrichedGoals.filter((goal) => goal.progressVal < 100).length;
+  const needsAttentionCount = enrichedGoals.filter((goal) => goal.needsAttention).length;
+  const summaryProgress = Math.round(
+    visibleGoals.length === 0
+      ? 0
+      : (activeGoalsCount / Math.max(visibleGoals.length, 1)) * 100,
+  );
+
+  const openGoal = (goalId: string) => {
+    setActiveGoalId(goalId);
+    setView("detail");
+  };
+
   return (
-            <motion.div
-              key="goals"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="p-4 md:p-8 max-w-6xl mx-auto w-full pb-24"
+    <motion.div
+      key="goals"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="relative min-h-screen bg-[#0a101b] px-4 pb-36 pt-4 text-white md:px-8 md:pb-10"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_10%,rgba(140,168,255,0.16),transparent_26%),radial-gradient(circle_at_18%_28%,rgba(108,165,255,0.08),transparent_30%),linear-gradient(180deg,#101826_0%,#0b1220_42%,#09111c_100%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-80 bg-[radial-gradient(circle_at_50%_-8%,rgba(255,255,255,0.07),transparent_30%),radial-gradient(circle_at_0%_100%,rgba(0,0,0,0.28),transparent_40%),radial-gradient(circle_at_100%_100%,rgba(0,0,0,0.2),transparent_34%)]" />
+
+      <div className="relative mx-auto w-full max-w-5xl pb-24">
+          <header className="relative flex h-[76px] items-center justify-between px-4">
+            <button
+              type="button"
+              aria-label="Menu"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-white/85"
             >
+              <span className="relative block h-4 w-5">
+                <span className="absolute left-0 top-0 h-[1.5px] w-5 rounded-full bg-white/80" />
+                <span className="absolute left-0 top-[6px] h-[1.5px] w-3.5 rounded-full bg-white/55" />
+              </span>
+            </button>
 
-              {goals.length === 0 ? (
-                <div className="py-32 text-center border border-dashed dark:border-white/5 border-stone-200 rounded-xl dark:bg-white/[0.01] bg-stone-50">
-                  <div className="w-20 h-20 dark:bg-white/5 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Target className="w-10 h-10 dark:text-stone-500 text-stone-600" />
-                  </div>
-                  <h3 className="text-xl font-bold dark:text-white text-stone-900 mb-2">
-                    No goals yet
-                  </h3>
-                  <p className="dark:text-stone-500 text-stone-600 text-sm mb-8 max-w-xs mx-auto">
-                    Start by creating your first goal to track your progress and
-                    achieve your dreams.
-                  </p>
-                  <button
-                    onClick={() => setIsAddingGoal(true)}
-                    className="px-8 py-3 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-400 transition-colors shadow-lg shadow-orange-500/20"
-                  >
-                    Create First Goal
-                  </button>
+            <h1 className="text-[21px] font-bold tracking-[-0.02em] text-white/92">
+              Goals
+            </h1>
+
+            <button
+              type="button"
+              onClick={() => setIsAddingGoal(true)}
+              aria-label="Add goal"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.12] bg-[linear-gradient(180deg,rgba(133,154,193,0.22),rgba(62,80,115,0.16))] text-white/90 shadow-[0_10px_24px_-14px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-md"
+            >
+              <Plus className="h-[18px] w-[18px]" />
+            </button>
+          </header>
+
+          <div className="space-y-[18px] px-4 pb-28 pt-[10px]">
+            {visibleGoals.length === 0 ? (
+              <div className="rounded-[24px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(47,61,88,0.36),rgba(20,28,43,0.34))] px-6 py-12 text-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.7)]">
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03]">
+                  <Target className="h-8 w-8 text-white/78" />
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                  {goals.map((goal, i) => {
-                    const cat = categories.find(
-                      (c) => c.name === goal.category,
-                    ) || { color: "#64748b", icon: "⚡" };
-                    const progressVal = Math.round(goal.progress || 0);
-                    const milestoneDone = (goal.milestones || []).filter(m => m.done).length;
-                    const milestoneTotal = (goal.milestones || []).length;
-                    
-                    return (
-                      <motion.div
-                        key={goal.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        onClick={() => {
-                          setActiveGoalId(goal.id);
-                          setView("detail");
-                        }}
-                        className="group cursor-pointer relative overflow-hidden rounded-xl border dark:border-white/[0.06] border-stone-200/80 dark:bg-white/[0.02] bg-white hover:dark:bg-white/[0.04] hover:bg-stone-50 hover:dark:border-white/10 hover:border-stone-300 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/5"
-                      >
-                        {/* Category color accent bar */}
-                        <div
-                          className="absolute top-0 left-0 w-full h-[3px] opacity-60 group-hover:opacity-100 transition-opacity"
-                          style={{ background: `linear-gradient(to right, ${cat.color}, transparent)` }}
-                        />
+                <h3 className="text-xl font-semibold tracking-tight text-white">
+                  No goals yet
+                </h3>
+                <p className="mx-auto mt-2 max-w-[240px] text-sm leading-relaxed text-white/58">
+                  Create your first goal to bring this screen to life.
+                </p>
+              </div>
+            ) : (
+              <>
+                <motion.button
+                  type="button"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={() => featuredGoal && openGoal(featuredGoal.id)}
+                  className="relative flex h-[82px] w-full items-center gap-[14px] overflow-hidden rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(82,103,136,0.26),rgba(30,42,61,0.22))] px-4 text-left shadow-[0_14px_28px_-18px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px]"
+                >
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_90%_8%,rgba(164,192,255,0.16),transparent_26%)]" />
+                  <div className="relative flex h-[42px] w-[42px] shrink-0 items-center justify-center">
+                    <svg className="h-[42px] w-[42px] -rotate-90" viewBox="0 0 44 44">
+                      <circle
+                        cx="22"
+                        cy="22"
+                        r="19"
+                        fill="none"
+                        stroke="rgba(82,99,126,0.75)"
+                        strokeWidth="4.2"
+                      />
+                      <circle
+                        cx="22"
+                        cy="22"
+                        r="19"
+                        fill="none"
+                        stroke="url(#summaryRing)"
+                        strokeWidth="4.2"
+                        strokeLinecap="round"
+                        strokeDasharray={`${(summaryProgress / 100) * SUMMARY_RING} ${SUMMARY_RING}`}
+                      />
+                      <defs>
+                        <linearGradient id="summaryRing" x1="0" y1="0" x2="1" y2="1">
+                          <stop stopColor="#87c4ff" />
+                          <stop offset="1" stopColor="#57a6ff" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </div>
 
-                        <div className="p-5 flex items-center gap-4">
-                          {/* Progress Ring */}
-                          <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
-                            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
-                              <circle
-                                cx="18" cy="18" r="15.5"
-                                fill="none"
-                                className="dark:stroke-white/[0.06] stroke-stone-200"
-                                strokeWidth="2.5"
-                              />
-                              <circle
-                                cx="18" cy="18" r="15.5"
-                                fill="none"
-                                stroke={cat.color}
-                                strokeWidth="2.5"
-                                strokeDasharray={`${(progressVal / 100) * 97.4} 97.4`}
-                                strokeLinecap="round"
-                                className="transition-all duration-1000 ease-out"
-                              />
-                            </svg>
-                            <span
-                              className="text-[11px] font-black relative z-10"
-                              style={{ color: cat.color }}
-                            >
-                              {progressVal}%
+                  <div className="relative min-w-0 flex-1">
+                    <p className="text-[15px] font-semibold text-white/90">
+                      {activeGoalsCount} active / {visibleGoals.length} total
+                    </p>
+                    <p className="mt-1 truncate text-[13px] text-white/66">
+                      {needsAttentionCount > 0
+                        ? `${needsAttentionCount} goal${needsAttentionCount === 1 ? "" : "s"} need attention today`
+                        : "Everything looks under control today"}
+                    </p>
+                  </div>
+
+                  <ChevronRight className="relative h-[18px] w-[18px] shrink-0 text-white/55" />
+                </motion.button>
+
+                {featuredGoal && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.03 }}
+                    onClick={() => openGoal(featuredGoal.id)}
+                    className="relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(73,88,119,0.3),rgba(16,24,38,0.42)_42%,rgba(10,18,31,0.74)_100%)] px-4 py-4 shadow-[0_18px_34px_-24px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[20px]"
+                  >
+                    <div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background: `radial-gradient(circle at 82% 14%, ${featuredGoal.accent}16 0%, transparent 26%), linear-gradient(180deg, transparent, rgba(4,8,15,0.14))`,
+                      }}
+                    />
+
+                    <div className="relative flex min-h-[104px] items-center gap-3">
+                      <div className="relative flex h-[104px] w-[104px] shrink-0 items-center justify-center">
+                        <div
+                          className="absolute inset-[14px] rounded-full blur-[18px]"
+                          style={{ backgroundColor: `${featuredGoal.accent}14` }}
+                        />
+                        <svg className="relative h-[104px] w-[104px] -rotate-90" viewBox="0 0 120 120">
+                          <circle
+                            cx="60"
+                            cy="60"
+                            r="51"
+                            fill="none"
+                            stroke="rgba(66,83,108,0.95)"
+                            strokeWidth="10"
+                          />
+                          <motion.circle
+                            cx="60"
+                            cy="60"
+                            r="51"
+                            fill="none"
+                            stroke={featuredGoal.accent}
+                            strokeWidth="10"
+                            strokeLinecap="round"
+                            strokeDasharray={HERO_RING}
+                            initial={{ strokeDashoffset: HERO_RING }}
+                            animate={{
+                              strokeDashoffset:
+                                HERO_RING - (HERO_RING * featuredGoal.progressVal) / 100,
+                            }}
+                            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                            style={{
+                              filter: `drop-shadow(0 0 10px ${featuredGoal.accent}28)`,
+                            }}
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-[24px] font-extrabold leading-none tracking-[-0.04em] text-white">
+                            {featuredGoal.progressVal}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="min-w-0 flex-1 pr-1">
+                        <h2
+                          className="overflow-hidden text-[20px] font-bold leading-[1.05] tracking-[-0.03em] text-white [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
+                          title={featuredGoal.title}
+                        >
+                          {featuredGoal.title}
+                        </h2>
+                        <p className="mt-1.5 text-[14px] font-medium text-white/82">
+                          {featuredGoal.progressVal}% Complete
+                        </p>
+                        <div className="mt-2 h-px w-full bg-white/[0.12]" />
+                        <p
+                          className="mt-2 overflow-hidden text-[13px] leading-[1.35] text-white/76 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
+                          title={featuredGoal.heroMeta}
+                        >
+                          {featuredGoal.heroMeta}
+                        </p>
+                        <p className="mt-1.5 text-[13px] text-white/62">
+                          {featuredGoal.dueText}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                <section className="pt-1">
+                  <h3 className="px-[1px] text-[16px] font-bold tracking-tight text-white/92">
+                    Your Goals
+                  </h3>
+
+                  <div className="mt-[10px] space-y-2.5">
+                    {compactGoals.map((goal, index) => (
+                      <motion.button
+                        key={goal.id}
+                        type="button"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.05 + index * 0.03 }}
+                        onClick={() => openGoal(goal.id)}
+                        className="relative flex min-h-[70px] w-full items-start gap-2.5 overflow-hidden rounded-[15px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(42,54,76,0.34),rgba(14,22,34,0.4))] px-4 py-[11px] text-left shadow-[0_12px_20px_-18px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[15px]"
+                      >
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_92%_8%,rgba(164,192,255,0.08),transparent_24%)]" />
+                        <div
+                          className="relative mt-[2px] flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-[6px] border border-white/[0.04]"
+                          style={{ backgroundColor: `${goal.accent}14` }}
+                        >
+                          <span
+                            className="block h-[7px] w-[7px] rounded-[3px]"
+                            style={{ backgroundColor: goal.accent }}
+                          />
+                        </div>
+
+                        <div className="relative min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="truncate text-[14px] font-semibold tracking-[-0.01em] text-white/90">
+                              {goal.title}
+                            </p>
+                            <span className="shrink-0 text-[14px] font-semibold text-white/80">
+                              {goal.summaryValue}
                             </span>
                           </div>
 
-                          {/* Title & Meta */}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-[15px] font-bold dark:text-white text-stone-900 truncate mb-1.5 group-hover:text-orange-400 transition-colors">
-                              {goal.title}
-                            </h4>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {/* Priority pill */}
-                              <span className={cn(
-                                "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider",
-                                goal.priority === 'High' ? 'bg-rose-500/10 text-rose-400' :
-                                goal.priority === 'Medium' ? 'bg-amber-500/10 text-amber-400' :
-                                'bg-emerald-500/10 text-emerald-400'
-                              )}>
-                                <span className={`w-1 h-1 rounded-full ${goal.priority === 'High' ? 'bg-rose-400' : goal.priority === 'Medium' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                                {goal.priority}
-                              </span>
-                              {/* Category pill */}
-                              <span
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider"
-                                style={{ 
-                                  background: `${cat.color}15`,
-                                  color: cat.color 
-                                }}
-                              >
-                                {goal.category}
-                              </span>
-                              {/* Milestone count */}
-                              {milestoneTotal > 0 && (
-                                <span className="text-[9px] font-semibold dark:text-stone-500 text-stone-400 tracking-wider uppercase">
-                                  {milestoneDone}/{milestoneTotal} done
-                                </span>
-                              )}
-                            </div>
+                          <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-[#334056]">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${goal.progressVal}%` }}
+                              transition={{ duration: 0.8, delay: 0.08 + index * 0.03 }}
+                              className="h-full rounded-full"
+                              style={{ backgroundColor: goal.accent }}
+                            />
                           </div>
 
+                          <div className="mt-[9px] flex items-center justify-between gap-3 text-[11px] text-white/64">
+                            <p className="truncate">{goal.compactMetaLeft}</p>
+                            <p className="shrink-0">{goal.compactDueText}</p>
+                          </div>
                         </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Floating Action Button */}
-              <motion.button
-                onClick={() => setIsAddingGoal(true)}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="fixed bottom-24 md:bottom-8 right-6 md:right-8 z-[100] w-14 h-14 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xl shadow-orange-500/30 hover:bg-orange-400 hover:shadow-orange-500/40 transition-colors"
-              >
-                <Plus className="w-6 h-6" />
-              </motion.button>
-            </motion.div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </section>
+              </>
+            )}
+          </div>
+      </div>
+    </motion.div>
   );
 }

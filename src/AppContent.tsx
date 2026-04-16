@@ -252,6 +252,30 @@ export default function App() {
 
   const [loading, setLoading] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [featuredGoalId, setFeaturedGoalId] = useState<string | null>(() => {
+    return localStorage.getItem("forge_featured_goal_id");
+  });
+
+  useEffect(() => {
+    if (featuredGoalId) {
+      localStorage.setItem("forge_featured_goal_id", featuredGoalId);
+    } else {
+      localStorage.removeItem("forge_featured_goal_id");
+    }
+  }, [featuredGoalId]);
+
+  useEffect(() => {
+    if (goals.length === 0) {
+      setFeaturedGoalId(null);
+      return;
+    }
+
+    if (featuredGoalId && goals.some((goal) => goal.id === featuredGoalId)) {
+      return;
+    }
+
+    setFeaturedGoalId(goals[0].id);
+  }, [featuredGoalId, goals]);
 
   const fetchGoals = async () => {
     await Promise.all([fetchGoalList(), fetchHabits()]);
@@ -877,6 +901,8 @@ export default function App() {
     setBreatherTimeout,
     setShowBreather,
     setSlidingOut,
+    featuredGoalId,
+    setFeaturedGoalId,
     goals,
     habits,
     categories,
@@ -1008,6 +1034,5 @@ export default function App() {
     </div>
   );
 }
-
 
 

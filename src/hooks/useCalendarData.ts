@@ -75,7 +75,7 @@ export function useCalendarData({
       items.push({
         ...h,
         goalTitle: "Habit",
-        categoryColor: cat.color,
+        categoryColor: h.color || cat.color,
         isHabit: true,
       });
     });

@@ -70,6 +70,9 @@ export function GoalsView(props: any) {
     ChevronRight,
   } = props;
 
+  const cardSurface =
+    "border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]";
+
   const visibleGoals = React.useMemo(
     () => goals.filter((goal: any) => goal.title !== "General Tasks"),
     [goals],
@@ -175,11 +178,8 @@ export function GoalsView(props: any) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="relative min-h-screen bg-[#0a101b] px-2 pb-36 pt-4 text-white md:px-8 md:pb-10"
+      className="relative min-h-screen bg-[#090b0f] px-2 pb-36 pt-4 text-white md:px-8 md:pb-10"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_10%,rgba(140,168,255,0.16),transparent_26%),radial-gradient(circle_at_18%_28%,rgba(108,165,255,0.08),transparent_30%),linear-gradient(180deg,#101826_0%,#0b1220_42%,#09111c_100%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-80 bg-[radial-gradient(circle_at_50%_-8%,rgba(255,255,255,0.07),transparent_30%),radial-gradient(circle_at_0%_100%,rgba(0,0,0,0.28),transparent_40%),radial-gradient(circle_at_100%_100%,rgba(0,0,0,0.2),transparent_34%)]" />
-
       <div className="relative mx-auto w-full max-w-5xl pb-24">
           <header className="relative flex h-[76px] items-center justify-between px-2">
             <button
@@ -227,9 +227,9 @@ export function GoalsView(props: any) {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => featuredGoal && openGoal(featuredGoal.id)}
-                  className="relative flex h-[82px] w-full items-center gap-[14px] overflow-hidden rounded-[20px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(82,103,136,0.26),rgba(30,42,61,0.22))] px-4 text-left shadow-[0_14px_28px_-18px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[18px]"
+                  className={`relative flex h-[82px] w-full items-center gap-[14px] overflow-hidden rounded-[20px] px-4 text-left backdrop-blur-[18px] ${cardSurface}`}
                 >
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_90%_8%,rgba(164,192,255,0.16),transparent_26%)]" />
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_90%_8%,rgba(255,255,255,0.06),transparent_24%)]" />
                   <div className="relative flex h-[42px] w-[42px] shrink-0 items-center justify-center">
                     <svg className="h-[42px] w-[42px] -rotate-90" viewBox="0 0 44 44">
                       <circle
@@ -279,12 +279,12 @@ export function GoalsView(props: any) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.03 }}
                     onClick={() => openGoal(featuredGoal.id)}
-                    className="relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-[linear-gradient(145deg,rgba(73,88,119,0.3),rgba(16,24,38,0.42)_42%,rgba(10,18,31,0.74)_100%)] px-4 py-4 shadow-[0_18px_34px_-24px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-[20px]"
+                    className={`relative overflow-hidden rounded-[24px] px-4 py-4 backdrop-blur-[20px] ${cardSurface}`}
                   >
                     <div
                       className="pointer-events-none absolute inset-0"
                       style={{
-                        background: `radial-gradient(circle at 82% 14%, ${featuredGoal.accent}16 0%, transparent 26%), linear-gradient(180deg, transparent, rgba(4,8,15,0.14))`,
+                        background: `radial-gradient(circle at 82% 14%, ${featuredGoal.accent}10 0%, transparent 22%), linear-gradient(180deg, transparent, rgba(4,8,15,0.1))`,
                       }}
                     />
 
@@ -369,9 +369,9 @@ export function GoalsView(props: any) {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.05 + index * 0.03 }}
                         onClick={() => openGoal(goal.id)}
-                        className="relative flex min-h-[70px] w-full items-start gap-2.5 overflow-hidden rounded-[15px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(42,54,76,0.34),rgba(14,22,34,0.4))] px-4 py-[11px] text-left shadow-[0_12px_20px_-18px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[15px]"
+                        className={`relative flex min-h-[70px] w-full items-start gap-2.5 overflow-hidden rounded-[15px] px-4 py-[11px] text-left backdrop-blur-[15px] ${cardSurface}`}
                       >
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_92%_8%,rgba(164,192,255,0.08),transparent_24%)]" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_92%_8%,rgba(255,255,255,0.04),transparent_22%)]" />
                         <div
                           className="relative mt-[2px] flex h-[19px] w-[19px] shrink-0 items-center justify-center rounded-[6px] border border-white/[0.04]"
                           style={{ backgroundColor: `${goal.accent}14` }}

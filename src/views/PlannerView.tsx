@@ -68,7 +68,7 @@ function DroppablePlannerDate({
       }}
       onClick={onClick}
       className={cn(
-        "relative flex items-start group cursor-pointer transition-all",
+        "relative flex items-start group cursor-pointer transition-all py-1.5",
         isSelected
           ? "bg-stone-100 dark:bg-white/[0.03]"
           : "hover:bg-stone-50 dark:hover:bg-white/[0.02]",
@@ -82,6 +82,7 @@ function DroppablePlannerDate({
           isSelected ? "bg-orange-500" : isTodayDate ? "bg-orange-500/40" : "bg-transparent",
         )}
       />
+      <div className="pointer-events-none absolute left-4 right-4 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.075),transparent)]" />
       {children}
     </div>
   );
@@ -108,23 +109,18 @@ function DraggablePlannerTask({
       ref={setNodeRef}
       style={{ opacity: isDragging ? 0.5 : 1 }}
       className={cn(
-        "group/task flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg transition-colors",
-        isSelected ? "hover:bg-stone-100 dark:hover:bg-white/5" : "",
+        "group/task flex items-center gap-3 py-2.5 px-3 rounded-lg border transition-all w-full",
+        "bg-stone-100 dark:bg-white/[0.03] border-stone-200 dark:border-white/[0.10] hover:bg-stone-100 dark:hover:bg-white/[0.045]",
         milestone.done && "opacity-40",
       )}
     >
       <button
         {...attributes}
         {...listeners}
-        className="p-1 text-stone-300 dark:text-white/20 hover:text-stone-500 dark:hover:text-white/50 cursor-grab active:cursor-grabbing opacity-0 group-hover/task:opacity-100 transition-opacity"
+        className="p-1 text-stone-300 dark:text-white/20 hover:text-stone-500 dark:hover:text-white/50 cursor-grab active:cursor-grabbing opacity-100 md:opacity-0 md:group-hover/task:opacity-100 transition-opacity"
       >
         <GripVertical className="w-3.5 h-3.5" />
       </button>
-
-      <div
-        className="w-1.5 h-1.5 rounded-full shrink-0"
-        style={{ backgroundColor: cat.color }}
-      />
 
       <div className="flex-1 min-w-0">
         <h4
@@ -137,7 +133,7 @@ function DraggablePlannerTask({
         >
           {milestone.title}
         </h4>
-        {milestone.goal && (
+        {milestone.goal && milestone.goal.title !== "General Tasks" && (
           <p className="text-[9px] text-stone-400 dark:text-white/25 truncate tracking-wider uppercase font-medium mt-0.5">
             {milestone.goal.title}
           </p>
@@ -145,7 +141,7 @@ function DraggablePlannerTask({
       </div>
 
       {isSelected && (
-        <div className="flex items-center opacity-0 group-hover/task:opacity-100 transition-opacity">
+        <div className="flex items-center opacity-100 md:opacity-0 md:group-hover/task:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -320,7 +316,7 @@ export function PlannerView({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="md:p-8 max-w-7xl mx-auto w-full min-h-screen"
+      className="md:p-8 max-w-7xl mx-auto w-full min-h-screen bg-[#090b0f]"
     >
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex flex-row md:gap-6 min-h-[calc(100vh-4rem)] max-w-5xl mx-auto w-full relative">
@@ -352,9 +348,9 @@ export function PlannerView({
           </div>
 
           {/* Main Timeline Area */}
-          <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#121212] md:rounded-2xl md:border border-stone-200 dark:border-white/[0.06]">
+          <div className="flex-1 flex flex-col min-w-0 bg-[#090b0f] md:rounded-2xl md:border border-stone-200 dark:border-white/[0.06]">
             {/* Sticky Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 sm:px-6 py-4 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl sticky top-0 z-30 border-b border-stone-200 dark:border-white/[0.06]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 sm:px-6 py-4 bg-[#090b0f]/95 backdrop-blur-xl sticky top-0 z-30 border-b border-stone-200 dark:border-white/[0.06]">
               <div className="flex items-center gap-3">
                 <div className="flex items-center bg-stone-100 dark:bg-white/5 p-0.5 rounded-lg border border-stone-200 dark:border-white/[0.06]">
                   <button

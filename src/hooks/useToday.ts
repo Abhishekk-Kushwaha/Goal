@@ -242,14 +242,6 @@ export function useToday({
       // Immediately complete the task — no delay
       handleToggleToday(task);
 
-      // Show non-blocking toast
-      setShowBreather(true);
-      if (breatherTimeout) clearTimeout(breatherTimeout);
-      const timeoutId = setTimeout(() => {
-        setShowBreather(false);
-        setBreatherTimeout(null);
-      }, 3000);
-      setBreatherTimeout(timeoutId);
     } else {
       handleToggleToday(task);
     }

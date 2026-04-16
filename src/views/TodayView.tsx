@@ -49,6 +49,7 @@ export function TodayView(props: any) {
     Trophy,
     ChevronRight,
     Flame,
+    Target,
   } = props;
 
   const today = new Date();
@@ -73,7 +74,7 @@ export function TodayView(props: any) {
         label: format(day, "EEEEE"),
       };
     });
-  }, [format, getItemsForDate, todayMilestones]);
+  }, [format, getItemsForDate]);
 
   const chart = {
     width: 320,
@@ -121,13 +122,7 @@ export function TodayView(props: any) {
       {isHabit ? (
         <Flame className="relative h-3.5 w-3.5" style={{ color }} />
       ) : (
-        <span
-          className="relative h-2.5 w-2.5 rounded-full"
-          style={{
-            backgroundColor: color,
-            boxShadow: `0 0 14px ${hexToRgba(color, 0.45)}`,
-          }}
-        />
+        <Target className="relative h-3.5 w-3.5" style={{ color }} />
       )}
     </div>
   );
@@ -180,7 +175,7 @@ export function TodayView(props: any) {
               stroke="rgba(255,255,255,0.04)"
               strokeWidth="18"
             />
-            <motion.circle
+            <circle
               cx="64"
               cy="64"
               r="48"
@@ -189,9 +184,7 @@ export function TodayView(props: any) {
               strokeWidth="10"
               strokeLinecap="round"
               strokeDasharray={301.59}
-              initial={{ strokeDashoffset: 301.59 }}
-              animate={{ strokeDashoffset: 301.59 - (301.59 * todayProgress) / 100 }}
-              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              strokeDashoffset={301.59 - (301.59 * todayProgress) / 100}
               style={{ filter: "drop-shadow(0 0 10px rgba(52,211,153,0.35))" }}
             />
             <defs>
@@ -228,13 +221,11 @@ export function TodayView(props: any) {
             const isHighlight = index >= 5 || day.progress >= 80;
             return (
               <React.Fragment key={day.day.toISOString()}>
-                <motion.line
+                <line
                   x1={day.x}
                   x2={day.x}
                   y1={chart.baseline}
-                  initial={{ y2: chart.baseline }}
-                  animate={{ y2: chart.baseline - day.visualHeight }}
-                  transition={{ duration: 0.75, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                  y2={chart.baseline - day.visualHeight}
                   stroke={isHighlight ? "url(#momentumBar)" : "rgba(255,255,255,0.25)"}
                   strokeWidth="16"
                   strokeLinecap="round"
@@ -304,10 +295,10 @@ export function TodayView(props: any) {
                 type="button"
                 onClick={(event) => handleArenaComplete(task, event)}
                 disabled={Boolean(task.__placeholder)}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[15px] border border-emerald-300/18 bg-white/[0.025] text-emerald-200 transition-colors hover:bg-emerald-400/[0.08] disabled:opacity-55"
+                className="flex h-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 text-[12px] font-semibold tracking-[-0.01em] text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/88 disabled:opacity-55"
                 aria-label={`Complete ${title}`}
               >
-                <CheckCircle2 className="h-4.5 w-4.5" />
+                <span>Done</span>
               </button>
             </div>
           </div>
@@ -337,7 +328,7 @@ export function TodayView(props: any) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="relative min-h-screen w-full bg-[#090b0f] px-4 pb-44 pt-5 text-white md:px-8 md:pb-10"
+      className="relative min-h-screen w-full overflow-x-hidden bg-[#090b0f] px-4 pb-56 pt-5 text-white md:px-8 md:pb-10"
     >
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#101319_0%,#090b0f_190px,#090b0f_100%)]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-[radial-gradient(circle_at_50%_0%,rgba(52,211,153,0.08),transparent_58%)]" />
@@ -500,7 +491,7 @@ export function TodayView(props: any) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.97 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-24 right-4 z-[200] flex max-w-sm items-center gap-3 rounded-2xl border border-white/[0.08] bg-[#111418]/95 px-4 py-3 shadow-[0_20px_60px_-38px_rgba(0,0,0,1)] backdrop-blur-xl md:bottom-8 md:right-8"
+            className="fixed left-4 right-4 top-20 z-[200] flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-[#111418]/95 px-4 py-3 shadow-[0_20px_60px_-38px_rgba(0,0,0,1)] backdrop-blur-xl md:left-auto md:right-8 md:top-auto md:bottom-8 md:max-w-sm"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/[0.09] text-emerald-200">
               <CheckCircle2 className="h-4 w-4" />

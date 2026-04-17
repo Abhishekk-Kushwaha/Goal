@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   LayoutDashboard,
   Target,
@@ -103,6 +103,7 @@ import { GoalModal } from "./components/modals/GoalModal";
 import { HabitModal } from "./components/modals/HabitModal";
 import { MilestoneModal } from "./components/modals/MilestoneModal";
 import { CategoryModal } from "./components/modals/CategoryModal";
+import { ConfirmDialog } from "./components/modals/ConfirmDialog";
 
 // --- Utility ---
 const uid = () => crypto.randomUUID();
@@ -145,6 +146,14 @@ interface WidgetConfig {
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
+type ConfirmDialogState = {
+  open: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  resolve: ((value: boolean) => void) | null;
 };
 
 // Tooltips extracted
@@ -192,6 +201,48 @@ export default function App() {
 
   const theme = "dark";
   const setTheme = () => {};
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
+    open: false,
+    title: "",
+    message: "",
+    confirmLabel: "Delete",
+    resolve: null,
+  });
+
+  const requestConfirm = useCallback(
+    ({
+      title,
+      message,
+      confirmLabel = "Delete",
+    }: {
+      title: string;
+      message: string;
+      confirmLabel?: string;
+    }) =>
+      new Promise<boolean>((resolve) => {
+        setConfirmDialog({
+          open: true,
+          title,
+          message,
+          confirmLabel,
+          resolve,
+        });
+      }),
+    [],
+  );
+
+  const closeConfirmDialog = useCallback((confirmed: boolean) => {
+    setConfirmDialog((current) => {
+      current.resolve?.(confirmed);
+      return {
+        open: false,
+        title: "",
+        message: "",
+        confirmLabel: "Delete",
+        resolve: null,
+      };
+    });
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("forge_theme", "dark");
@@ -218,6 +269,7 @@ export default function App() {
     handleDeleteCategory,
   } = useCategories({
     onCategoriesChanged: () => fetchGoals(),
+    confirmAction: requestConfirm,
   });
 
   const {
@@ -237,7 +289,7 @@ export default function App() {
     newGoal,
     setNewGoal,
     cancelGoalForm,
-  } = useGoals({ categories, setView });
+  } = useGoals({ categories, setView, confirmAction: requestConfirm });
 
   const {
     habits,
@@ -254,9 +306,8 @@ export default function App() {
     newHabit,
     setNewHabit,
     cancelHabitForm,
-  } = useHabits({ categories });
+  } = useHabits({ categories, confirmAction: requestConfirm });
 
-  const [loading, setLoading] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [featuredGoalId, setFeaturedGoalId] = useState<string | null>(() => {
     return localStorage.getItem("forge_featured_goal_id");
@@ -413,17 +464,24 @@ export default function App() {
   });
 
   useEffect(() => {
+    let isCancelled = false;
+
     if (session) {
       const loadData = async () => {
-        setLoading(true);
         await Promise.all([fetchGoals(), fetchCategories()]);
-        setLoading(false);
       };
-      loadData();
-    } else if (!isSessionLoading) {
-      setLoading(false);
+
+      void loadData().catch((error) => {
+        if (!isCancelled) {
+          console.error("Initial app data failed to load:", error);
+        }
+      });
     }
-  }, [session, isSessionLoading]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [session]);
 
   useEffect(() => {
     if (categories.length === 0) return;
@@ -765,7 +823,8 @@ export default function App() {
       isFocusMode ||
       isCustomizingLayout ||
       isCustomizingNav ||
-      isMobileMenuOpen;
+      isMobileMenuOpen ||
+      confirmDialog.open;
 
     if (isAnyModalOpen) {
       window.history.pushState({ modal: true }, "");
@@ -784,6 +843,7 @@ export default function App() {
     isCustomizingLayout,
     isCustomizingNav,
     isMobileMenuOpen,
+    confirmDialog.open,
   ]);
 
   useEffect(() => {
@@ -800,11 +860,12 @@ export default function App() {
         setIsCustomizingLayout(false);
         setIsCustomizingNav(false);
         setIsMobileMenuOpen(false);
+        closeConfirmDialog(false);
       }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [closeConfirmDialog]);
   const handleMarkAllDone = async (ids: string[]) => {
     // Optimistic update
     setGoals(prev => prev.map(g => ({
@@ -877,18 +938,6 @@ export default function App() {
 
   if (supabase && !session) {
     return <Auth />;
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090b0f]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full"
-        />
-      </div>
-    );
   }
 
   const sharedViewProps = {
@@ -1068,6 +1117,15 @@ export default function App() {
           setActiveGoalId={setActiveGoalId}
         />
       </main>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        onCancel={() => closeConfirmDialog(false)}
+        onConfirm={() => closeConfirmDialog(true)}
+      />
 
       <AnimatePresence>
         {showNotificationPrompt && notificationsSupported && notificationPermission === "default" && (

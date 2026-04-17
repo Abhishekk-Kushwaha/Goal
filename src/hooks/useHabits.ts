@@ -5,6 +5,11 @@ const uid = () => crypto.randomUUID();
 
 type UseHabitsOptions = {
   categories: Category[];
+  confirmAction: (options: {
+    title: string;
+    message: string;
+    confirmLabel?: string;
+  }) => Promise<boolean>;
 };
 
 const getDefaultHabitForm = (categories: Category[]): Partial<Habit> => ({
@@ -15,7 +20,7 @@ const getDefaultHabitForm = (categories: Category[]): Partial<Habit> => ({
   color: "",
 });
 
-export function useHabits({ categories }: UseHabitsOptions) {
+export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
@@ -89,7 +94,12 @@ export function useHabits({ categories }: UseHabitsOptions) {
   };
 
   const handleDeleteHabit = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this habit?")) return;
+    const shouldDelete = await confirmAction({
+      title: "Delete Habit?",
+      message: "This will permanently remove the habit and its completion history.",
+      confirmLabel: "Delete",
+    });
+    if (!shouldDelete) return;
 
     setHabits((prev) => prev.filter((h) => h.id !== id));
 

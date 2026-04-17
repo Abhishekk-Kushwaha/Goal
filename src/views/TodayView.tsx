@@ -196,7 +196,13 @@ export function TodayView(props: any) {
             </defs>
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[21px] font-semibold tracking-[-0.02em] text-white tabular-nums">
+            <span
+              className={`font-semibold text-white tabular-nums ${
+                Math.round(todayProgress) >= 100
+                  ? "text-[16px] tracking-[-0.01em]"
+                  : "text-[21px] tracking-[-0.02em]"
+              }`}
+            >
               {Math.round(todayProgress)}%
             </span>
           </div>

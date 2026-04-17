@@ -15,6 +15,11 @@ export type GoalFormState = {
 type UseGoalsOptions = {
   categories: Category[];
   setView: (view: string) => void;
+  confirmAction: (options: {
+    title: string;
+    message: string;
+    confirmLabel?: string;
+  }) => Promise<boolean>;
 };
 
 const getDefaultGoalForm = (categories: Category[]): GoalFormState => ({
@@ -26,9 +31,12 @@ const getDefaultGoalForm = (categories: Category[]): GoalFormState => ({
   repeat: "None",
 });
 
-export function useGoals({ categories, setView }: UseGoalsOptions) {
+export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions) {
   const [goals, setGoals] = useState<Goal[]>([]);
-  const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
+  const [activeGoalId, setActiveGoalId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return window.localStorage.getItem("forge_active_goal_id");
+  });
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,6 +55,16 @@ export function useGoals({ categories, setView }: UseGoalsOptions) {
       prev.category ? prev : { ...prev, category: categories[0].name },
     );
   }, [categories]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (activeGoalId) {
+      window.localStorage.setItem("forge_active_goal_id", activeGoalId);
+    } else {
+      window.localStorage.removeItem("forge_active_goal_id");
+    }
+  }, [activeGoalId]);
 
   const resetGoalForm = () => {
     setNewGoal(defaultGoalForm);
@@ -106,7 +124,12 @@ export function useGoals({ categories, setView }: UseGoalsOptions) {
   };
 
   const handleDeleteGoal = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this goal?")) return;
+    const shouldDelete = await confirmAction({
+      title: "Delete Goal?",
+      message: "This will permanently remove the goal and its milestone progress.",
+      confirmLabel: "Delete",
+    });
+    if (!shouldDelete) return;
 
     setGoals((prev) => prev.filter((g) => g.id !== id));
 

@@ -227,7 +227,7 @@ export function GoalsView(props: any) {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => featuredGoal && openGoal(featuredGoal.id)}
-                  className={`relative flex h-[82px] w-full items-center gap-[14px] overflow-hidden rounded-[20px] px-4 text-left backdrop-blur-[18px] ${cardSurface}`}
+                  className={`relative flex h-[82px] w-full items-center gap-[14px] overflow-hidden rounded-[14px] px-4 text-left backdrop-blur-[18px] ${cardSurface}`}
                 >
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_90%_8%,rgba(255,255,255,0.06),transparent_24%)]" />
                   <div className="relative flex h-[42px] w-[42px] shrink-0 items-center justify-center">
@@ -279,7 +279,7 @@ export function GoalsView(props: any) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.03 }}
                     onClick={() => openGoal(featuredGoal.id)}
-                    className={`relative overflow-hidden rounded-[24px] px-4 py-4 backdrop-blur-[20px] ${cardSurface}`}
+                    className={`relative overflow-hidden rounded-[16px] px-4 py-4 backdrop-blur-[20px] ${cardSurface}`}
                   >
                     <div
                       className="pointer-events-none absolute inset-0"
@@ -324,7 +324,13 @@ export function GoalsView(props: any) {
                           />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-[24px] font-extrabold leading-none tracking-[-0.04em] text-white">
+                          <span
+                            className={`font-extrabold leading-none text-white ${
+                              featuredGoal.progressVal >= 100
+                                ? "text-[20px] tracking-[-0.03em]"
+                                : "text-[24px] tracking-[-0.04em]"
+                            }`}
+                          >
                             {featuredGoal.progressVal}%
                           </span>
                         </div>

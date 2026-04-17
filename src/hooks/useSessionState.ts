@@ -12,15 +12,35 @@ export function useSessionState() {
       return;
     }
 
+    let isMounted = true;
+
+    const hydrateSession = async () => {
+      const {
+        data: { session: currentSession },
+      } = await supabase.auth.getSession();
+
+      if (!isMounted) return;
+
+      setSession(currentSession);
+      setIsSessionLoading(false);
+      if (!currentSession) storage.clearCache();
+    };
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!isMounted) return;
       setSession(nextSession);
       setIsSessionLoading(false);
       if (!nextSession) storage.clearCache();
     });
 
-    return () => subscription.unsubscribe();
+    void hydrateSession();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return {

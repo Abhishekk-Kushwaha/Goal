@@ -18,6 +18,7 @@ export function CircularProgress({
   strokeWidth?: number;
   color?: string;
 }) {
+  const roundedProgress = Math.round(progress);
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (progress / 100) * circumference;
@@ -56,10 +57,24 @@ export function CircularProgress({
         <span
           className={cn(
             "font-black leading-none whitespace-nowrap dark:text-white text-stone-900",
-            size < 70 ? "text-[17px]" : size < 100 ? "text-xl" : size < 120 ? "text-2xl" : "text-4xl",
+            roundedProgress >= 100
+              ? size < 70
+                ? "text-[14px]"
+                : size < 100
+                  ? "text-[16px]"
+                  : size < 120
+                    ? "text-[20px]"
+                    : "text-[32px]"
+              : size < 70
+                ? "text-[17px]"
+                : size < 100
+                  ? "text-xl"
+                  : size < 120
+                    ? "text-2xl"
+                    : "text-4xl",
           )}
         >
-          {Math.round(progress)}%
+          {roundedProgress}%
         </span>
         {size > 120 && (
           <span className="text-[9px] font-bold uppercase tracking-widest dark:text-stone-500 text-stone-400">

@@ -6,8 +6,13 @@ const uid = () => crypto.randomUUID();
 export function useCategories(options: {
   onCategoriesLoaded?: (categories: Category[]) => void;
   onCategoriesChanged?: () => void | Promise<void>;
+  confirmAction: (options: {
+    title: string;
+    message: string;
+    confirmLabel?: string;
+  }) => Promise<boolean>;
 }) {
-  const { onCategoriesLoaded, onCategoriesChanged } = options;
+  const { onCategoriesLoaded, onCategoriesChanged, confirmAction } = options;
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -69,11 +74,13 @@ export function useCategories(options: {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this category? Goals using it will remain but won't have a valid category.",
-      )
-    ) {
+    const shouldDelete = await confirmAction({
+      title: "Delete Category?",
+      message:
+        "Goals using it will remain, but they will lose their category mapping.",
+      confirmLabel: "Delete",
+    });
+    if (!shouldDelete) {
       return;
     }
 

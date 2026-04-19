@@ -3,6 +3,7 @@ import { AnimatePresence } from "motion/react";
 import { TodayView } from "../views/TodayView";
 import { DashboardView } from "../views/DashboardView";
 import { GoalsView } from "../views/GoalsView";
+import { GoalInsightsView } from "../views/GoalInsightsView";
 import { GoalDetailView } from "../views/GoalDetailView";
 import { CategoriesView } from "../views/CategoriesView";
 import { HabitsView } from "../views/HabitsView";
@@ -34,6 +35,8 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({ view, sharedViewPr
         <DashboardView {...sharedViewProps} />
       ) : view === "goals" ? (
         <GoalsView {...sharedViewProps} />
+      ) : view === "goal-insights" ? (
+        <GoalInsightsView {...sharedViewProps} />
       ) : view === "detail" ? (
         <GoalDetailView {...sharedViewProps} />
       ) : view === "categories" ? (

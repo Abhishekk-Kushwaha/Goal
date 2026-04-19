@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { storage } from "../storage";
+import { TaskPreviewCard } from "../components/TaskPreviewCard";
 
 export function GoalDetailView(props: any) {
   const {
@@ -137,6 +138,7 @@ export function GoalDetailView(props: any) {
   } = props;
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  const [previewMilestone, setPreviewMilestone] = useState<any | null>(null);
 
   const handleTitleSave = async () => {
     const trimmed = titleDraft.trim();
@@ -287,7 +289,12 @@ export function GoalDetailView(props: any) {
                                           <CheckCircle2 className="w-4 h-4" />
                                         )}
                                       </button>
-                                      <div className="flex-1 min-w-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => setPreviewMilestone({ ...ms, isDone })}
+                                        className="flex-1 min-w-0 text-left"
+                                        aria-label={`Preview ${ms.title}`}
+                                      >
                                         <h5
                                           className={cn(
                                             "text-sm font-bold truncate",
@@ -316,7 +323,7 @@ export function GoalDetailView(props: any) {
                                               </span>
                                             )}
                                         </div>
-                                      </div>
+                                      </button>
                                       <button
                                         onClick={() => deleteMilestone(ms.id)}
                                         className="p-2 dark:text-stone-500 text-stone-600 hover:text-rose-400 transition-colors"
@@ -473,6 +480,39 @@ export function GoalDetailView(props: any) {
                   </p>
                 </div>
               )}
+              <TaskPreviewCard
+                open={Boolean(previewMilestone)}
+                onClose={() => setPreviewMilestone(null)}
+                title={previewMilestone?.title || ""}
+                subtitle={activeGoal?.title || "Milestone"}
+                accentColor={
+                  categories.find((category: any) => category.name === activeGoal?.category)?.color ||
+                  "#f97316"
+                }
+                metadata={[
+                  {
+                    label: "Due",
+                    value:
+                      previewMilestone?.due_date && isValidDate(previewMilestone.due_date)
+                        ? format(new Date(previewMilestone.due_date), "MMM d, yyyy")
+                        : undefined,
+                    icon: "calendar",
+                  },
+                  {
+                    label: "Repeat",
+                    value:
+                      previewMilestone?.repeat && previewMilestone.repeat !== "None"
+                        ? previewMilestone.repeat
+                        : undefined,
+                    icon: "repeat",
+                  },
+                  {
+                    label: "Status",
+                    value: previewMilestone ? (previewMilestone.isDone ? "Completed" : "Open") : undefined,
+                    icon: "status",
+                  },
+                ]}
+              />
             </motion.div>
   );
 }

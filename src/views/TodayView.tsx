@@ -1,5 +1,6 @@
 import React from "react";
 import { ChevronDown } from "lucide-react";
+import { TaskPreviewCard } from "../components/TaskPreviewCard";
 
 const ACCENT = "#34d399";
 const ACCENT_DEEP = "#0f766e";
@@ -56,6 +57,7 @@ export function TodayView(props: any) {
   const incompleteTasks = todayMilestones.filter((task: any) => !task.done);
   const completedTasks = todayMilestones.filter((task: any) => task.done);
   const visibleTasks = incompleteTasks;
+  const [previewTask, setPreviewTask] = React.useState<any | null>(null);
   const remainingCount = Math.max(todayTotalCount - todayCompletedCount, 0);
   const aheadOfYesterday = todayProgress >= yesterdayProgress;
   const focusTask = incompleteTasks[0];
@@ -262,7 +264,7 @@ export function TodayView(props: any) {
     </PremiumSurface>
   );
 
-  const FocusTaskCard = ({ task, index }: { task: any; index: number }) => {
+  const FocusTaskCard = ({ task, index }: { task: any; index: number; key?: React.Key }) => {
     const isHabit = Boolean(task.isHabit);
     const color = task.categoryColor || (isHabit ? ACCENT : "#2dd4bf");
     const title = task.title || (index === 0 ? "jjhk" : "hkj");
@@ -285,7 +287,13 @@ export function TodayView(props: any) {
           <TaskIcon color={color} isHabit={isHabit} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
+              <button
+                type="button"
+                onClick={() => !task.__placeholder && setPreviewTask(task)}
+                disabled={Boolean(task.__placeholder)}
+                className="min-w-0 flex-1 text-left disabled:cursor-default"
+                aria-label={`Preview ${title}`}
+              >
                 <h3 className="truncate text-[16px] font-semibold leading-tight tracking-[-0.01em] text-white/88">
                   {title}
                 </h3>
@@ -296,7 +304,7 @@ export function TodayView(props: any) {
                   />
                   <span className="truncate">{metadata}</span>
                 </p>
-              </div>
+              </button>
               <button
                 type="button"
                 onClick={(event) => handleArenaComplete(task, event)}
@@ -521,6 +529,27 @@ export function TodayView(props: any) {
           </motion.div>
         )}
       </AnimatePresence>
+      <TaskPreviewCard
+        open={Boolean(previewTask)}
+        onClose={() => setPreviewTask(null)}
+        title={previewTask?.title || ""}
+        subtitle={previewTask?.isHabit ? "Habit" : "Task"}
+        accentColor={previewTask?.categoryColor || (previewTask?.isHabit ? ACCENT : "#2dd4bf")}
+        metadata={[
+          {
+            label: previewTask?.isHabit ? "Streak" : "Goal",
+            value: previewTask?.isHabit
+              ? `${previewTask?.streak || 0} days`
+              : previewTask?.goalTitle || "General Tasks",
+            icon: previewTask?.isHabit ? "status" : "tag",
+          },
+          {
+            label: "Category",
+            value: previewTask?.category,
+            icon: "tag",
+          },
+        ]}
+      />
     </motion.div>
   );
 }

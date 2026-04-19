@@ -41,6 +41,7 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { isCompletedOnDate, isDueOnDate, type Category, type Goal, type Milestone } from "../storage";
 import { DraggableMilestone } from "../components/dnd/DraggableMilestone";
+import { TaskPreviewCard } from "../components/TaskPreviewCard";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -95,6 +96,7 @@ function DraggablePlannerTask({
   onEdit,
   onDelete,
   onToggleComplete,
+  onPreview,
 }: any) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: milestone.id,
@@ -122,7 +124,15 @@ function DraggablePlannerTask({
         <GripVertical className="w-3.5 h-3.5" />
       </button>
 
-      <div className="flex-1 min-w-0">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onPreview(milestone);
+        }}
+        className="flex-1 min-w-0 text-left"
+        aria-label={`Preview ${milestone.title}`}
+      >
         <h4
           className={cn(
             "text-sm truncate transition-colors",
@@ -138,7 +148,7 @@ function DraggablePlannerTask({
             {milestone.goal.title}
           </p>
         )}
-      </div>
+      </button>
 
       {isSelected && (
         <div className="flex items-center opacity-100 md:opacity-0 md:group-hover/task:opacity-100 transition-opacity">
@@ -187,6 +197,7 @@ export function PlannerView({
   const [editTaskRepeat, setEditTaskRepeat] = useState<"None" | "Daily" | "Weekly" | "Monthly">("None");
   const [isEditRepeatMenuOpen, setIsEditRepeatMenuOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [previewTask, setPreviewTask] = useState<any | null>(null);
   const selectedRef = useRef<HTMLDivElement>(null);
 
   const allUnassignedMilestones = useMemo(() => {
@@ -590,6 +601,7 @@ export function PlannerView({
                                 onToggleComplete={(m: any) => {
                                   editMilestone(m.id, { done: !m.done });
                                 }}
+                                onPreview={setPreviewTask}
                               />
                             );
                           })}
@@ -711,6 +723,33 @@ export function PlannerView({
           ) : null}
         </DragOverlay>
       </DndContext>
+      <TaskPreviewCard
+        open={Boolean(previewTask)}
+        onClose={() => setPreviewTask(null)}
+        title={previewTask?.title || ""}
+        subtitle={previewTask?.goal?.title || previewTask?.goalTitle || "Task"}
+        accentColor={
+          categories.find((category: Category) => category.name === previewTask?.goal?.category)?.color ||
+          "#f97316"
+        }
+        metadata={[
+          {
+            label: "Date",
+            value: previewTask?.due_date ? format(new Date(previewTask.due_date), "MMM d, yyyy") : undefined,
+            icon: "calendar",
+          },
+          {
+            label: "Repeat",
+            value: previewTask?.repeat && previewTask.repeat !== "None" ? previewTask.repeat : undefined,
+            icon: "repeat",
+          },
+          {
+            label: "Status",
+            value: previewTask ? (previewTask.done ? "Completed" : "Open") : undefined,
+            icon: "status",
+          },
+        ]}
+      />
     </motion.div>
   );
 }

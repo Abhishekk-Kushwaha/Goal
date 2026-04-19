@@ -1,144 +1,76 @@
 import React, { useState } from "react";
-import { storage } from "../storage";
+import { format, isPast } from "date-fns";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Flame,
+  Plus,
+  Target,
+  Trash2,
+  TrendingUp,
+} from "lucide-react";
+import {
+  isCompletedOnDate,
+  storage,
+  type Category,
+  type Goal,
+  type Milestone,
+} from "../storage";
 import { TaskPreviewCard } from "../components/TaskPreviewCard";
+import { Badge } from "../components/ui/Badge";
+import { Card } from "../components/ui/Card";
+import { cn } from "../lib/utils";
+import type { ViewType } from "../hooks/useAppRouter";
 
-export function GoalDetailView(props: any) {
+const PRIORITY_COLORS = {
+  High: "dark:text-rose-400 text-rose-700 dark:bg-rose-400/10 bg-rose-50 dark:border-rose-400/20 border-rose-200",
+  Medium:
+    "dark:text-amber-400 text-amber-700 dark:bg-amber-400/10 bg-amber-50 dark:border-amber-400/20 border-amber-200",
+  Low: "dark:text-orange-400 text-orange-700 dark:bg-orange-400/10 bg-orange-50 dark:border-orange-400/20 border-orange-200",
+};
+
+const isValidDate = (dateStr: string | undefined | null) => {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  return !Number.isNaN(d.getTime());
+};
+
+type PreviewMilestone = Milestone & {
+  isDone?: boolean;
+};
+
+type GoalDetailViewProps = {
+  setView: React.Dispatch<React.SetStateAction<ViewType>>;
+  setIsAddingMilestone: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleMilestone: (id: string, date?: string) => void | Promise<void>;
+  deleteMilestone: (id: string) => void | Promise<void>;
+  handleDeleteGoal: (id: string) => void | Promise<void>;
+  fetchGoals: () => Promise<Goal[]>;
+  featuredGoalId: string | null;
+  setFeaturedGoalId: React.Dispatch<React.SetStateAction<string | null>>;
+  categories: Category[];
+  activeGoal?: Goal;
+};
+
+export function GoalDetailView(props: GoalDetailViewProps) {
   const {
-    motion,
-    AnimatePresence,
-    DndContext,
-    DragOverlay,
-    defaultDropAnimationSideEffects,
-    cn,
-    format,
-    parseISO,
-    addMonths,
-    subMonths,
-    startOfMonth,
-    endOfMonth,
-    startOfWeek,
-    endOfWeek,
-    eachDayOfInterval,
-    isSameMonth,
-    isSameDay,
-    isToday,
-    isPast,
-    PlannerView,
-    AssignTasksView,
-    Card,
-    Badge,
-    DraggableMilestone,
-    DroppableCalendarDay,
-    CircularProgress,
-    CustomBarTooltip,
-    CustomTooltip,
-    PRIORITY_COLORS,
-    isValidDate,
-    isCompletedOnDate,
     setView,
-    setTheme,
-    setSelectedDate,
-    setActiveGoalId,
-    setCurrentMonth,
-    setIsFocusMode,
-    setIsAddingGoal,
-    setIsAddingHabit,
     setIsAddingMilestone,
-    setIsCustomizingLayout,
-    setDismissedConquered,
-    setNewMilestone,
-    setEditingGoal,
-    setNewGoal,
-    setEditingHabit,
-    setNewHabit,
-    toggleHabitOptimistic,
-    toggleGoalCompletionOptimistic,
     toggleMilestone,
     deleteMilestone,
-    editMilestone,
-    handleAddPlannerTask,
     handleDeleteGoal,
-    handleDeleteHabit,
-    handleDeleteCategory,
-    handleMarkAllDone,
-    handleToggleToday,
-    handleArenaComplete,
-    handleCalendarDragStart,
-    handleCalendarDragEnd,
     fetchGoals,
-    session,
-    supabase,
-    theme,
-    currentDate,
-    dashboardLayout,
-    stats,
-    chartData,
-    repeatabilityData,
-    categoryData,
-    trendData,
-    productivityInsights,
-    currentMonth,
-    selectedDate,
-    milestonesForSelectedDate,
-    todayMilestones,
-    todayProgress,
-    yesterdayProgress,
-    yesterdayCompletedCount,
-    dismissedConquered,
-    personalBest,
-    highestStreak,
-    barPulse,
-    floatingPoints,
-    slidingOut,
-    showBreather,
-    breatherMessage,
-    lastCompleted,
-    breatherTimeout,
-    setBreatherTimeout,
-    setShowBreather,
-    setSlidingOut,
     featuredGoalId,
     setFeaturedGoalId,
-    goals,
-    habits,
     categories,
     activeGoal,
-    activeGoalId,
-    unassignedMilestones,
-    sensors,
-    activeCalendarDragId,
-    activeCalendarMilestone,
-    getItemsForDate,
-    getHeroTheme,
-    getBarColor,
-    getHypeText,
-    getStreakMessage,
-    X,
-    Zap,
-    Plus,
-    CheckCircle2,
-    TrendingUp,
-    TrendingDown,
-    Trophy,
-    Target,
-    Settings,
-    Trash2,
-    ChevronRight,
-    ArrowLeft,
-    Activity,
-    Flame,
-    Calendar,
-    CalendarDays,
-    Sun,
-    Moon,
-    Award,
-    Clock,
-    LayoutDashboard,
-    User,
   } = props;
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
-  const [previewMilestone, setPreviewMilestone] = useState<any | null>(null);
+  const [previewMilestone, setPreviewMilestone] =
+    useState<PreviewMilestone | null>(null);
 
   const handleTitleSave = async () => {
     const trimmed = titleDraft.trim();
@@ -264,7 +196,7 @@ export function GoalDetailView(props: any) {
                                   const isDone =
                                     ms.repeat && ms.repeat !== "None"
                                       ? isCompletedOnDate(ms, new Date())
-                                      : ms.done === 1 || ms.done === true;
+                                      : ms.done === true;
 
                                   return (
                                     <div

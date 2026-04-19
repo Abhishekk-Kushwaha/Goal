@@ -1,63 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import {
-  LayoutDashboard,
-  Target,
-  Plus,
-  ChevronRight,
-  ChevronDown,
-  Calendar,
-  CalendarDays,
-  Flame,
-  CheckCircle2,
-  Trash2,
-  ArrowLeft,
-  Filter,
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  Award,
-  Settings,
-  Eye,
-  EyeOff,
-  GripVertical,
-  X,
-  Sun,
-  Moon,
-  Activity,
-  Zap,
-  Trophy,
-  User,
-  Check,
-} from "lucide-react";
-import { motion, AnimatePresence, Reorder } from "motion/react";
-import {
-  DndContext,
-  DragOverlay,
-  defaultDropAnimationSideEffects,
-} from "@dnd-kit/core";
+import { AnimatePresence } from "motion/react";
 import {
   format,
-  differenceInDays,
-  isPast,
-  isToday,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
   isSameMonth,
   isSameDay,
   isSameWeek,
-  addMonths,
-  subMonths,
-  addDays,
   parseISO,
 } from "date-fns";
-import { cn } from "./lib/utils";
-import { Card } from "./components/ui/Card";
-import { Badge } from "./components/ui/Badge";
-import { CustomBarTooltip } from "./components/ui/CustomBarTooltip";
-import { CustomTooltip } from "./components/ui/CustomTooltip";
 import {
   storage,
   isCompletedOnDate,
@@ -67,11 +16,6 @@ import {
 import { supabase } from "./lib/supabase";
 import { Auth } from "./components/Auth";
 import { Sidebar } from "./components/Sidebar";
-import { DraggableMilestone as SharedDraggableMilestone } from "./components/dnd/DraggableMilestone";
-import {
-  DroppableCalendarDay as SharedDroppableCalendarDay,
-} from "./components/dnd/DroppableDay";
-import { CircularProgress as SharedCircularProgress } from "./components/ui/CircularProgress";
 import { ViewContainer } from "./components/ViewContainer";
 import { InitialDataSkeleton } from "./components/InitialDataSkeleton";
 import { useAppRouter } from "./hooks/useAppRouter";
@@ -94,21 +38,8 @@ import { ConfirmDialog } from "./components/modals/ConfirmDialog";
 // --- Utility ---
 const uid = () => crypto.randomUUID();
 
-const isValidDate = (dateStr: string | undefined | null) => {
-  if (!dateStr) return false;
-  const d = new Date(dateStr);
-  return !isNaN(d.getTime());
-};
-
 // --- Types ---
 // Types are now imported from storage.ts
-
-const PRIORITY_COLORS = {
-  High: "dark:text-rose-400 text-rose-700 dark:bg-rose-400/10 bg-rose-50 dark:border-rose-400/20 border-rose-200",
-  Medium:
-    "dark:text-amber-400 text-amber-700 dark:bg-amber-400/10 bg-amber-50 dark:border-amber-400/20 border-amber-200",
-  Low: "dark:text-orange-400 text-orange-700 dark:bg-orange-400/10 bg-orange-50 dark:border-orange-400/20 border-orange-200",
-};
 
 // --- Components ---
 
@@ -264,6 +195,7 @@ export default function App() {
     isAddingGoal,
     setIsAddingGoal,
     isSaving: goalIsSaving,
+    saveError: goalSaveError,
     newGoal,
     setNewGoal,
     cancelGoalForm,
@@ -281,6 +213,7 @@ export default function App() {
     isAddingHabit,
     setIsAddingHabit,
     isSaving: habitIsSaving,
+    saveError: habitSaveError,
     newHabit,
     setNewHabit,
     cancelHabitForm,
@@ -385,7 +318,8 @@ export default function App() {
   };
 
   const fetchGoals = async () => {
-    await Promise.all([fetchGoalList(), fetchHabits()]);
+    const [goalsData] = await Promise.all([fetchGoalList(), fetchHabits()]);
+    return goalsData;
   };
 
   const [milestoneSaving, setMilestoneSaving] = useState(false);
@@ -984,34 +918,6 @@ export default function App() {
   }
 
   const sharedViewProps = {
-    motion,
-    AnimatePresence,
-    DndContext,
-    DragOverlay,
-    defaultDropAnimationSideEffects,
-    cn,
-    format,
-    parseISO,
-    addMonths,
-    subMonths,
-    startOfMonth,
-    endOfMonth,
-    startOfWeek,
-    endOfWeek,
-    eachDayOfInterval,
-    isSameMonth,
-    isSameDay,
-    isToday,
-    isPast,
-    Card,
-    Badge,
-    DraggableMilestone: SharedDraggableMilestone,
-    DroppableCalendarDay: SharedDroppableCalendarDay,
-    CircularProgress: SharedCircularProgress,
-    CustomBarTooltip,
-    CustomTooltip,
-    PRIORITY_COLORS,
-    isValidDate,
     isCompletedOnDate,
     setView,
     setTheme,
@@ -1026,6 +932,8 @@ export default function App() {
     completedExpanded,
     setShowMomentumMobile,
     showMomentumMobile,
+    setIsAddingCategory,
+    setEditingCategory,
     todayCompletedCount,
     todayTotalCount,
     pendingTodayTaskKeys,
@@ -1035,6 +943,7 @@ export default function App() {
     setIsAddingMilestone,
     setIsCustomizingLayout,
     setDismissedConquered,
+    newMilestone,
     setNewMilestone,
     setEditingGoal,
     setNewGoal,
@@ -1105,29 +1014,6 @@ export default function App() {
     getBarColor,
     getHypeText,
     getStreakMessage,
-    X,
-    Zap,
-    Plus,
-    CheckCircle2,
-    TrendingUp,
-    TrendingDown,
-    Trophy,
-    Target,
-    Settings,
-    Trash2,
-    ChevronRight,
-    ArrowLeft,
-    Activity,
-    Flame,
-    Calendar,
-    CalendarDays,
-    Sun,
-    Moon,
-    Award,
-    Clock,
-    LayoutDashboard,
-    User,
-    Check,
   };
 
   return (
@@ -1177,6 +1063,7 @@ export default function App() {
           setNewGoal={setNewGoal}
           categories={categories}
           isSaving={isSaving}
+          saveError={goalSaveError}
         />
         <HabitModal
           isAddingHabit={isAddingHabit}
@@ -1188,6 +1075,7 @@ export default function App() {
           setNewHabit={setNewHabit}
           categories={categories}
           isSaving={isSaving}
+          saveError={habitSaveError}
         />
         <MilestoneModal
           isAddingMilestone={isAddingMilestone}

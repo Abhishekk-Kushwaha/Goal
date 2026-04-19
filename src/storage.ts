@@ -276,12 +276,9 @@ export const storage = {
   async getGoals(): Promise<Goal[]> {
     const user = await this.getUser();
     if (!user) {
-      console.warn('getGoals: No user found, returning empty array');
       return [];
     }
 
-    console.log('Fetching goals and milestones for user:', user.id);
-    
     // Fetch goals and milestones in parallel
     const [goalsResult, milestonesResult] = await Promise.all([
       supabase
@@ -307,8 +304,6 @@ export const storage = {
 
     const goalsData = goalsResult.data || [];
     const milestonesData = milestonesResult.data || [];
-
-    console.log('Fetched goals count:', goalsData.length);
 
     const goals: Goal[] = goalsData.map(g => {
       const goalMilestones = milestonesData
@@ -351,7 +346,7 @@ export const storage = {
 
     if (error) {
       console.error('Error adding goal:', error);
-      alert('Failed to save goal: ' + error.message);
+      throw error;
     }
   },
 
@@ -791,7 +786,7 @@ export const storage = {
 
     if (error) {
       console.error('Error adding habit:', error);
-      alert('Failed to save habit: ' + error.message);
+      throw error;
     }
   },
 

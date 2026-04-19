@@ -1,11 +1,11 @@
-import React from "react";
+import { Component, type ErrorInfo, type PropsWithChildren } from "react";
 
 type AppErrorBoundaryState = {
   error: Error | null;
 };
 
-export class AppErrorBoundary extends React.Component<
-  React.PropsWithChildren,
+export class AppErrorBoundary extends Component<
+  PropsWithChildren<{}>,
   AppErrorBoundaryState
 > {
   state: AppErrorBoundaryState = {
@@ -18,7 +18,7 @@ export class AppErrorBoundary extends React.Component<
     return { error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("AppErrorBoundary caught a render error:", error, errorInfo);
   }
 

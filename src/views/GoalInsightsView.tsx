@@ -36,6 +36,8 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
+import type { Category, Goal } from "../storage";
+import type { ViewType } from "../hooks/useAppRouter";
 
 const RANGE_OPTIONS = [
   { key: "7d", label: "Last 7 Days", days: 7 },
@@ -46,6 +48,15 @@ const RANGE_OPTIONS = [
 
 type RangeKey = (typeof RANGE_OPTIONS)[number]["key"];
 type ChartMode = "total" | "goal";
+
+type GoalInsightsViewProps = {
+  goals: Goal[];
+  categories: Category[];
+  activeGoalId: string | null;
+  setView: React.Dispatch<React.SetStateAction<ViewType>>;
+  setActiveGoalId: React.Dispatch<React.SetStateAction<string | null>>;
+  setIsAddingGoal: React.Dispatch<React.SetStateAction<boolean>>;
+};
 
 function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -180,8 +191,8 @@ function TrendTooltip({ active, payload, label }: any) {
   );
 }
 
-export function GoalInsightsView(props: any) {
-  const { goals, categories, setView, setActiveGoalId } = props;
+export function GoalInsightsView(props: GoalInsightsViewProps) {
+  const { goals, categories, setView, setActiveGoalId, setIsAddingGoal } = props;
 
   const visibleGoals = useMemo(
     () => goals.filter((goal: any) => goal.title !== "General Tasks"),
@@ -497,7 +508,7 @@ export function GoalInsightsView(props: any) {
             </p>
             <button
               type="button"
-              onClick={() => props.setIsAddingGoal?.(true)}
+              onClick={() => setIsAddingGoal(true)}
               className="mt-5 rounded-full border border-sky-400/20 bg-sky-400/12 px-4 py-2 text-[12px] font-semibold text-sky-200 transition-colors hover:bg-sky-400/16"
             >
               Create goal

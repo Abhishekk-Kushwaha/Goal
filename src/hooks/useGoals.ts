@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { storage, type Category, type Goal } from "../storage";
+import type { ViewType } from "./useAppRouter";
 
 const uid = () => crypto.randomUUID();
 
@@ -14,7 +15,7 @@ export type GoalFormState = {
 
 type UseGoalsOptions = {
   categories: Category[];
-  setView: (view: string) => void;
+  setView: React.Dispatch<React.SetStateAction<ViewType>>;
   confirmAction: (options: {
     title: string;
     message: string;
@@ -40,6 +41,7 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [isAddingGoal, setIsAddingGoal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState<GoalFormState>(() =>
     getDefaultGoalForm(categories),
   );
@@ -66,6 +68,12 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
     }
   }, [activeGoalId]);
 
+  useEffect(() => {
+    if (!isAddingGoal && !editingGoal) {
+      setSaveError(null);
+    }
+  }, [isAddingGoal, editingGoal]);
+
   const resetGoalForm = () => {
     setNewGoal(defaultGoalForm);
   };
@@ -80,9 +88,9 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
     e.preventDefault();
     if (isSaving) return;
 
-    console.log("Adding goal:", newGoal);
+    setSaveError(null);
     if (!newGoal.title) {
-      console.warn("Goal title is missing");
+      setSaveError("Goal title is required.");
       return;
     }
 
@@ -100,24 +108,28 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
       setGoals((prev) => [...prev, optimisticGoal as any]);
     }
 
-    setIsAddingGoal(false);
-    resetGoalForm();
-
     setIsSaving(true);
     try {
       if (editingGoal) {
-        console.log("Updating goal:", editingGoal.id);
         await storage.updateGoal(editingGoal.id, newGoal);
         setEditingGoal(null);
         await fetchGoals();
       } else {
-        console.log("Creating new goal with ID:", tempId);
         await storage.addGoal(optimisticGoal as any);
         await fetchGoals();
       }
+      setIsAddingGoal(false);
+      resetGoalForm();
     } catch (error) {
       console.error("Error in handleAddGoal:", error);
-      alert("An unexpected error occurred while saving.");
+      if (!editingGoal) {
+        setGoals((prev) => prev.filter((g) => g.id !== tempId));
+      }
+      setSaveError(
+        error instanceof Error
+          ? `Failed to save goal: ${error.message}`
+          : "An unexpected error occurred while saving.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -162,6 +174,7 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
   const cancelGoalForm = () => {
     setIsAddingGoal(false);
     setEditingGoal(null);
+    setSaveError(null);
     resetGoalForm();
   };
 
@@ -180,6 +193,8 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
     setIsAddingGoal,
     isSaving,
     setIsSaving,
+    saveError,
+    setSaveError,
     newGoal,
     setNewGoal,
     resetGoalForm,

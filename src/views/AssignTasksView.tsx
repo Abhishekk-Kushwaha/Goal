@@ -9,6 +9,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import { motion } from "motion/react";
 import {
@@ -28,6 +29,7 @@ import { twMerge } from "tailwind-merge";
 import { storage, type Goal } from "../storage";
 import { DraggableMilestone } from "../components/dnd/DraggableMilestone";
 import { DroppableDay } from "../components/dnd/DroppableDay";
+import type { ViewType } from "../hooks/useAppRouter";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -54,7 +56,17 @@ function Card({
   );
 }
 
-export function AssignTasksView({ goals, fetchGoals, setView }: any) {
+type AssignTasksViewProps = {
+  goals: Goal[];
+  fetchGoals: () => Promise<Goal[]>;
+  setView: React.Dispatch<React.SetStateAction<ViewType>>;
+};
+
+export function AssignTasksView({
+  goals,
+  fetchGoals,
+  setView,
+}: AssignTasksViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [localGoals, setLocalGoals] = useState(goals);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -83,8 +95,8 @@ export function AssignTasksView({ goals, fetchGoals, setView }: any) {
     );
   }, [activeId, allUnassignedMilestones, allAssignedMilestones]);
 
-  const handleDragStart = (event: { active: { id: string } }) => {
-    setActiveId(event.active.id);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {

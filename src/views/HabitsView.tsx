@@ -13,7 +13,10 @@ import {
   Check, 
   Settings, 
 } from "lucide-react";
-import { isDueOnDate } from "../storage";
+import { motion, AnimatePresence } from "motion/react";
+import { isDueOnDate, type Category, type Habit } from "../storage";
+import { cn } from "../lib/utils";
+import { CircularProgress } from "../components/ui/CircularProgress";
 
 const HABIT_SURFACE =
   "rounded-xl overflow-hidden border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]";
@@ -23,6 +26,20 @@ const HABIT_SUMMARY_ACCENT = "#87c4ff";
 
 type RgbColor = { r: number; g: number; b: number };
 type HabitFilter = "all" | "today" | "completed";
+
+type HabitsViewProps = {
+  isCompletedOnDate: (habit: Habit, date: Date) => boolean;
+  setIsAddingHabit: React.Dispatch<React.SetStateAction<boolean>>;
+  setEditingHabit: React.Dispatch<React.SetStateAction<Habit | null>>;
+  setNewHabit: React.Dispatch<React.SetStateAction<Partial<Habit>>>;
+  setHabitCompletedOptimistic: (
+    id: string,
+    date?: string,
+    done?: boolean,
+  ) => void | Promise<void>;
+  habits?: Habit[];
+  categories?: Category[];
+};
 
 const HABIT_FILTERS: { label: string; value: HabitFilter }[] = [
   { label: "All", value: "all" },
@@ -281,11 +298,8 @@ const HabitCard = ({
   );
 };
 
-export function HabitsView(props: any) {
+export function HabitsView(props: HabitsViewProps) {
   const {
-    motion,
-    AnimatePresence,
-    cn,
     isCompletedOnDate,
     setIsAddingHabit,
     setEditingHabit,
@@ -293,7 +307,6 @@ export function HabitsView(props: any) {
     setHabitCompletedOptimistic,
     habits = [],
     categories = [],
-    CircularProgress,
   } = props;
 
   const [filter, setFilter] = useState<HabitFilter>('all');
@@ -301,8 +314,8 @@ export function HabitsView(props: any) {
   // --- Calculations ---
   const stats = useMemo(() => {
     const today = getToday();
-    const dueToday = habits.filter((h: any) => isHabitDueToday(h, today));
-    const completedToday = dueToday.filter((h: any) => isCompletedOnDate(h, today));
+    const dueToday = habits.filter((h) => isHabitDueToday(h, today));
+    const completedToday = dueToday.filter((h) => isCompletedOnDate(h, today));
     return {
       total: dueToday.length,
       completed: completedToday.length,

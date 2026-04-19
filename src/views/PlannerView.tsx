@@ -10,6 +10,7 @@ import {
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -42,6 +43,28 @@ import { twMerge } from "tailwind-merge";
 import { isCompletedOnDate, isDueOnDate, type Category, type Goal, type Milestone } from "../storage";
 import { DraggableMilestone } from "../components/dnd/DraggableMilestone";
 import { TaskPreviewCard } from "../components/TaskPreviewCard";
+
+type PlannerRepeat = "None" | "Daily" | "Weekly" | "Monthly";
+
+type PlannerMilestone = Milestone & {
+  goalTitle: string;
+  goal?: Goal;
+};
+
+type PlannerViewProps = {
+  goals: Goal[];
+  categories: Category[];
+  handleAddPlannerTask: (
+    title: string,
+    date: Date,
+    repeat: string,
+  ) => void | Promise<void>;
+  deleteMilestone: (id: string) => void | Promise<void>;
+  editMilestone: (
+    id: string,
+    updates: Partial<Milestone>,
+  ) => void | Promise<void>;
+};
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -184,20 +207,20 @@ export function PlannerView({
   handleAddPlannerTask,
   deleteMilestone,
   editMilestone,
-}: any) {
+}: PlannerViewProps) {
   const [mode, setMode] = useState<"weekly" | "monthly">("weekly");
   const [baseDate, setBaseDate] = useState(startOfDay(new Date()));
   const [selectedDate, setSelectedDate] = useState(startOfDay(new Date()));
   const [addingTaskForDate, setAddingTaskForDate] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskRepeat, setNewTaskRepeat] = useState<"None" | "Daily" | "Weekly" | "Monthly">("None");
+  const [newTaskRepeat, setNewTaskRepeat] = useState<PlannerRepeat>("None");
   const [isRepeatMenuOpen, setIsRepeatMenuOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
-  const [editTaskRepeat, setEditTaskRepeat] = useState<"None" | "Daily" | "Weekly" | "Monthly">("None");
+  const [editTaskRepeat, setEditTaskRepeat] = useState<PlannerRepeat>("None");
   const [isEditRepeatMenuOpen, setIsEditRepeatMenuOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [previewTask, setPreviewTask] = useState<any | null>(null);
+  const [previewTask, setPreviewTask] = useState<PlannerMilestone | null>(null);
   const selectedRef = useRef<HTMLDivElement>(null);
 
   const allUnassignedMilestones = useMemo(() => {
@@ -222,8 +245,8 @@ export function PlannerView({
     return null;
   }, [activeId, allUnassignedMilestones, goals]);
 
-  const handleDragStart = (event: { active: { id: string } }) => {
-    setActiveId(event.active.id);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {

@@ -2,8 +2,7 @@ import React from "react";
 import { motion } from "motion/react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "../../lib/utils";
-import type { Habit } from "../../storage";
-import type { Category } from "../../hooks/useCategories";
+import type { Category, Habit } from "../../storage";
 
 interface HabitModalProps {
   isAddingHabit: boolean;
@@ -15,6 +14,7 @@ interface HabitModalProps {
   setNewHabit: (v: Partial<Habit>) => void;
   categories: Category[];
   isSaving: boolean;
+  saveError?: string | null;
 }
 
 export const HabitModal: React.FC<HabitModalProps> = ({
@@ -27,6 +27,7 @@ export const HabitModal: React.FC<HabitModalProps> = ({
   setNewHabit,
   categories,
   isSaving,
+  saveError,
 }) => {
   if (!isAddingHabit && !editingHabit) return null;
 
@@ -186,6 +187,11 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                 ))}
               </div>
             </div>
+            {saveError && (
+              <div className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-300">
+                {saveError}
+              </div>
+            )}
             <div className="flex gap-4 pt-4">
               <button
                 type="button"

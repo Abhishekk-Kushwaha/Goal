@@ -1,6 +1,60 @@
 import React from "react";
+import { format } from "date-fns";
+import { AnimatePresence, motion } from "motion/react";
 import { ChevronDown } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  Flame,
+  Target,
+  Trophy,
+  X,
+  Zap,
+} from "lucide-react";
 import { TaskPreviewCard } from "../components/TaskPreviewCard";
+import { cn } from "../lib/utils";
+import type { ViewType } from "../hooks/useAppRouter";
+
+type TodayTask = {
+  id: string;
+  title: string;
+  done?: boolean;
+  __placeholder?: boolean;
+  goalTitle?: string;
+  category?: string;
+  categoryColor?: string;
+  isHabit?: boolean;
+  isGoalAsMilestone?: boolean;
+};
+
+type TodayViewProps = {
+  setView: React.Dispatch<React.SetStateAction<ViewType>>;
+  setIsFocusMode: React.Dispatch<React.SetStateAction<boolean>>;
+  handleArenaComplete: (
+    task: TodayTask,
+    event: React.MouseEvent<HTMLElement>,
+  ) => void | Promise<void>;
+  handleToggleToday: (task: TodayTask, done: boolean) => void | Promise<void>;
+  getItemsForDate: (date: Date) => TodayTask[];
+  isFocusMode: boolean;
+  todayMilestones?: TodayTask[];
+  todayProgress?: number;
+  yesterdayProgress?: number;
+  todayCompletedCount?: number;
+  todayTotalCount?: number;
+  pendingTodayTaskKeys?: Set<string>;
+  getTodayTaskKey?: (task: TodayTask, date?: Date) => string;
+  completedExpanded: boolean;
+  setCompletedExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  showBreather: boolean;
+  breatherMessage: string;
+  lastCompleted: string | null;
+  breatherTimeout: ReturnType<typeof setTimeout> | null;
+  setBreatherTimeout: React.Dispatch<
+    React.SetStateAction<ReturnType<typeof setTimeout> | null>
+  >;
+  setShowBreather: React.Dispatch<React.SetStateAction<boolean>>;
+};
 
 const ACCENT = "#34d399";
 const ACCENT_DEEP = "#0f766e";
@@ -17,12 +71,8 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function TodayView(props: any) {
+export function TodayView(props: TodayViewProps) {
   const {
-    motion,
-    AnimatePresence,
-    cn,
-    format,
     setView,
     setIsFocusMode,
     handleArenaComplete,
@@ -44,20 +94,11 @@ export function TodayView(props: any) {
     breatherTimeout,
     setBreatherTimeout,
     setShowBreather,
-    X,
-    Zap,
-    Plus,
-    CheckCircle2,
-    TrendingUp,
-    Trophy,
-    ChevronRight,
-    Flame,
-    Target,
   } = props;
 
   const today = new Date();
-  const incompleteTasks = todayMilestones.filter((task: any) => !task.done);
-  const completedTasks = todayMilestones.filter((task: any) => task.done);
+  const incompleteTasks = todayMilestones.filter((task) => !task.done);
+  const completedTasks = todayMilestones.filter((task) => task.done);
   const visibleTasks = incompleteTasks;
   const [previewTask, setPreviewTask] = React.useState<any | null>(null);
   const remainingCount = Math.max(todayTotalCount - todayCompletedCount, 0);
@@ -74,7 +115,7 @@ export function TodayView(props: any) {
       const day = new Date();
       day.setDate(day.getDate() - (6 - index));
       const items = getItemsForDate(day);
-      const done = items.filter((item: any) => item.done).length;
+      const done = items.filter((item) => item.done).length;
       const progress = items.length === 0 ? 0 : Math.round((done / items.length) * 100);
       return {
         day,
@@ -83,7 +124,7 @@ export function TodayView(props: any) {
         label: format(day, "EEEEE"),
       };
     });
-  }, [format, getItemsForDate]);
+  }, [getItemsForDate]);
 
   const chart = {
     width: 320,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Target } from 'lucide-react';
-import { cn } from '../AppContent';
+import { cn } from '../lib/utils';
 
 export const Logo = ({ className, size = "md" }: { className?: string, size?: "sm" | "md" | "lg" }) => {
   const sizes = {

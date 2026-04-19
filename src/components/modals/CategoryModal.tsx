@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import type { Category } from "../../hooks/useCategories";
+import type { Category } from "../../storage";
 
 interface CategoryModalProps {
   isAddingCategory: boolean;

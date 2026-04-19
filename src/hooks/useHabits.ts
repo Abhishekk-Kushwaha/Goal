@@ -32,6 +32,7 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [newHabit, setNewHabit] = useState<Partial<Habit>>(() =>
     getDefaultHabitForm(categories),
   );
@@ -48,6 +49,12 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
     );
   }, [categories]);
 
+  useEffect(() => {
+    if (!isAddingHabit && !editingHabit) {
+      setSaveError(null);
+    }
+  }, [isAddingHabit, editingHabit]);
+
   const resetHabitForm = () => {
     setNewHabit(defaultHabitForm);
   };
@@ -61,8 +68,10 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
   const handleAddHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving || !newHabit.title) return;
+    setSaveError(null);
     const repeat = newHabit.repeat || "Daily";
     if ((repeat === "Weekly" || repeat === "Monthly") && !newHabit.created_at) {
+      setSaveError("Start date is required for scheduled habits.");
       return;
     }
 
@@ -85,9 +94,6 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
       setHabits((prev) => [...prev, optimisticHabit]);
     }
 
-    setIsAddingHabit(false);
-    resetHabitForm();
-
     setIsSaving(true);
     try {
       if (editingHabit) {
@@ -102,8 +108,18 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
         await storage.addHabit(optimisticHabit);
         await fetchHabits();
       }
+      setIsAddingHabit(false);
+      resetHabitForm();
     } catch (error) {
       console.error("Error in handleAddHabit:", error);
+      if (!editingHabit) {
+        setHabits((prev) => prev.filter((h) => h.id !== tempId));
+      }
+      setSaveError(
+        error instanceof Error
+          ? `Failed to save habit: ${error.message}`
+          : "An unexpected error occurred while saving.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -136,6 +152,7 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
   const cancelHabitForm = () => {
     setIsAddingHabit(false);
     setEditingHabit(null);
+    setSaveError(null);
     resetHabitForm();
   };
 
@@ -153,6 +170,8 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
     setIsAddingHabit,
     isSaving,
     setIsSaving,
+    saveError,
+    setSaveError,
     newHabit,
     setNewHabit,
     resetHabitForm,

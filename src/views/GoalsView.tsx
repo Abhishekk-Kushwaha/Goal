@@ -1,4 +1,18 @@
 import React from "react";
+import { motion } from "motion/react";
+import { ChevronRight, Plus, Target } from "lucide-react";
+import type { Category, Goal, Milestone } from "../storage";
+import type { ViewType } from "../hooks/useAppRouter";
+
+type GoalsViewProps = {
+  setView: React.Dispatch<React.SetStateAction<ViewType>>;
+  setActiveGoalId: React.Dispatch<React.SetStateAction<string | null>>;
+  setIsAddingGoal: React.Dispatch<React.SetStateAction<boolean>>;
+  featuredGoalId: string | null;
+  setFeaturedGoalId: React.Dispatch<React.SetStateAction<string | null>>;
+  goals: Goal[];
+  categories: Category[];
+};
 
 const HERO_RING = 320.44;
 const SUMMARY_RING = 119.38;
@@ -32,7 +46,7 @@ function formatCompactDueText(daysLeft: number | null, progress: number) {
   return `Due ${daysLeft}d`;
 }
 
-function getAccentColor(goal: any, fallback: string) {
+function getAccentColor(goal: Goal, fallback: string) {
   if ((goal.category || "").toLowerCase().includes("health")) return "#7ce5bd";
   if ((goal.category || "").toLowerCase().includes("finance")) return "#f5b955";
   if ((goal.category || "").toLowerCase().includes("learn")) return "#f4b560";
@@ -40,7 +54,7 @@ function getAccentColor(goal: any, fallback: string) {
   return fallback;
 }
 
-function getCompactValue(goal: any, progressVal: number) {
+function getCompactValue(goal: Goal, progressVal: number) {
   if ((goal.category || "").toLowerCase().includes("finance")) {
     const total = goal.note?.match(/₹[\d,]+/)?.[0];
     const saved = goal.note?.match(/saved[:\s-]+(₹[\d,]+)/i)?.[1];
@@ -55,9 +69,8 @@ function truncateText(text: string | undefined, maxLength: number) {
   return `${text.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`;
 }
 
-export function GoalsView(props: any) {
+export function GoalsView(props: GoalsViewProps) {
   const {
-    motion,
     setView,
     setActiveGoalId,
     setIsAddingGoal,
@@ -65,35 +78,32 @@ export function GoalsView(props: any) {
     setFeaturedGoalId,
     goals,
     categories,
-    Plus,
-    Target,
-    ChevronRight,
   } = props;
 
   const cardSurface =
     "border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]";
 
   const visibleGoals = React.useMemo(
-    () => goals.filter((goal: any) => goal.title !== "General Tasks"),
+    () => goals.filter((goal) => goal.title !== "General Tasks"),
     [goals],
   );
 
   const enrichedGoals = React.useMemo(() => {
-    return visibleGoals.map((goal: any) => {
+    return visibleGoals.map((goal) => {
       const category =
-        categories.find((c: any) => c.name === goal.category) || {
+        categories.find((c) => c.name === goal.category) || {
           color: "#67b8ff",
           icon: "•",
         };
       const milestones = goal.milestones || [];
       const progressVal = Math.max(0, Math.min(100, Math.round(goal.progress || 0)));
-      const milestoneDone = milestones.filter((m: any) => m.done).length;
+      const milestoneDone = milestones.filter((m: Milestone) => m.done).length;
       const milestoneTotal = milestones.length;
       const remainingMilestones = Math.max(milestoneTotal - milestoneDone, 0);
       const nextMilestone =
         [...milestones]
-          .filter((m: any) => !m.done)
-          .sort((a: any, b: any) => {
+          .filter((m: Milestone) => !m.done)
+          .sort((a: Milestone, b: Milestone) => {
             const aTime = a?.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER;
             const bTime = b?.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER;
             return aTime - bTime;

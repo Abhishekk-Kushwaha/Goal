@@ -1,4 +1,15 @@
 import React from "react";
+import { format } from "date-fns";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  Award,
+  Calendar,
+  CheckCircle2,
+  Settings,
+  Target,
+  TrendingUp,
+  X,
+} from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -9,71 +20,49 @@ import {
   Bar,
   Cell,
 } from "recharts";
+import { Card } from "../components/ui/Card";
+import { CustomBarTooltip } from "../components/ui/CustomBarTooltip";
+import { cn } from "../lib/utils";
 
-export function DashboardView(props: any) {
+type DashboardWidget = {
+  id: "stats" | "progress";
+  label: string;
+  visible: boolean;
+};
+
+type DashboardStats = {
+  total: number;
+  completed: number;
+  avgProgress: number;
+  totalMilestones: number;
+  completedMilestones: number;
+};
+
+type DashboardChartItem = {
+  name: string;
+  progress: number;
+  color: string;
+};
+
+type DashboardViewProps = {
+  setIsCustomizingLayout: React.Dispatch<React.SetStateAction<boolean>>;
+  session: { user?: { email?: string | null } } | null;
+  supabase: { auth: { signOut: () => Promise<unknown> } } | null;
+  theme: string;
+  currentDate: Date;
+  dashboardLayout: DashboardWidget[];
+  stats: DashboardStats;
+  chartData: DashboardChartItem[];
+  requestInstallApp: () => void;
+  showInstallHelp: boolean;
+  setShowInstallHelp: React.Dispatch<React.SetStateAction<boolean>>;
+  installPlatform: "prompt" | "ios" | "manual" | "installed";
+  isAppInstalled: boolean;
+};
+
+export function DashboardView(props: DashboardViewProps) {
   const {
-    motion,
-    AnimatePresence,
-    DndContext,
-    DragOverlay,
-    defaultDropAnimationSideEffects,
-    cn,
-    format,
-    parseISO,
-    addMonths,
-    subMonths,
-    startOfMonth,
-    endOfMonth,
-    startOfWeek,
-    endOfWeek,
-    eachDayOfInterval,
-    isSameMonth,
-    isSameDay,
-    isToday,
-    isPast,
-    PlannerView,
-    AssignTasksView,
-    Card,
-    Badge,
-    DraggableMilestone,
-    DroppableCalendarDay,
-    CircularProgress,
-    CustomBarTooltip,
-    CustomTooltip,
-    PRIORITY_COLORS,
-    isValidDate,
-    isCompletedOnDate,
-    setView,
-    setTheme,
-    setSelectedDate,
-    setActiveGoalId,
-    setCurrentMonth,
-    setIsFocusMode,
-    setIsAddingGoal,
-    setIsAddingHabit,
-    setIsAddingMilestone,
     setIsCustomizingLayout,
-    setDismissedConquered,
-    setNewMilestone,
-    setEditingGoal,
-    setNewGoal,
-    setEditingHabit,
-    setNewHabit,
-    toggleHabitOptimistic,
-    toggleGoalCompletionOptimistic,
-    toggleMilestone,
-    deleteMilestone,
-    editMilestone,
-    handleAddPlannerTask,
-    handleDeleteGoal,
-    handleDeleteHabit,
-    handleDeleteCategory,
-    handleMarkAllDone,
-    handleToggleToday,
-    handleArenaComplete,
-    handleCalendarDragStart,
-    handleCalendarDragEnd,
-    fetchGoals,
     session,
     supabase,
     theme,
@@ -81,67 +70,11 @@ export function DashboardView(props: any) {
     dashboardLayout,
     stats,
     chartData,
-    currentMonth,
-    selectedDate,
-    milestonesForSelectedDate,
-    todayMilestones,
-    todayProgress,
-    yesterdayProgress,
-    yesterdayCompletedCount,
-    dismissedConquered,
-    personalBest,
-    highestStreak,
-    barPulse,
-    floatingPoints,
-    slidingOut,
-    showBreather,
-    breatherMessage,
-    lastCompleted,
-    breatherTimeout,
-    setBreatherTimeout,
-    setShowBreather,
-    setSlidingOut,
     requestInstallApp,
     showInstallHelp,
     setShowInstallHelp,
     installPlatform,
     isAppInstalled,
-    goals,
-    habits,
-    categories,
-    activeGoal,
-    activeGoalId,
-    unassignedMilestones,
-    sensors,
-    activeCalendarDragId,
-    activeCalendarMilestone,
-    getItemsForDate,
-    getHeroTheme,
-    getBarColor,
-    getHypeText,
-    getStreakMessage,
-    X,
-    Zap,
-    Plus,
-    CheckCircle2,
-    TrendingUp,
-    TrendingDown,
-    Trophy,
-    Target,
-    Settings,
-    Trash2,
-    ChevronRight,
-    ArrowLeft,
-    Activity,
-    Flame,
-    Calendar,
-    CalendarDays,
-    Sun,
-    Moon,
-    Award,
-    Clock,
-    LayoutDashboard,
-    User,
   } = props;
   return (
             <motion.div

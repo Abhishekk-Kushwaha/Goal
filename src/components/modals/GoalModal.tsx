@@ -2,8 +2,8 @@ import React from "react";
 import { motion } from "motion/react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "../../lib/utils";
-import type { Goal } from "../../storage";
-import type { Category } from "../../hooks/useCategories";
+import type { Category, Goal } from "../../storage";
+import type { GoalFormState } from "../../hooks/useGoals";
 
 interface GoalModalProps {
   isAddingGoal: boolean;
@@ -11,10 +11,11 @@ interface GoalModalProps {
   editingGoal: Goal | null;
   setEditingGoal: (v: Goal | null) => void;
   handleAddGoal: (e: React.FormEvent) => Promise<void>;
-  newGoal: Partial<Goal>;
-  setNewGoal: (v: Partial<Goal>) => void;
+  newGoal: GoalFormState;
+  setNewGoal: React.Dispatch<React.SetStateAction<GoalFormState>>;
   categories: Category[];
   isSaving: boolean;
+  saveError?: string | null;
 }
 
 export const GoalModal: React.FC<GoalModalProps> = ({
@@ -27,6 +28,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
   setNewGoal,
   categories,
   isSaving,
+  saveError,
 }) => {
   if (!isAddingGoal && !editingGoal) return null;
 
@@ -145,6 +147,11 @@ export const GoalModal: React.FC<GoalModalProps> = ({
                 onChange={(e) => setNewGoal({ ...newGoal, note: e.target.value })}
               />
             </div>
+            {saveError && (
+              <div className="rounded-xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-300">
+                {saveError}
+              </div>
+            )}
             <div className="flex gap-4 pt-4">
               <button
                 type="button"

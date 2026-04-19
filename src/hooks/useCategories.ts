@@ -5,7 +5,7 @@ const uid = () => crypto.randomUUID();
 
 export function useCategories(options: {
   onCategoriesLoaded?: (categories: Category[]) => void;
-  onCategoriesChanged?: () => void | Promise<void>;
+  onCategoriesChanged?: () => void | Promise<unknown>;
   confirmAction: (options: {
     title: string;
     message: string;

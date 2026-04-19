@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "motion/react";
 import { Plus, Trash2 } from "lucide-react";
 import { Card } from "../components/ui/Card";
-import type { Category } from "../hooks/useCategories";
+import type { Category } from "../storage";
 
 interface CategoriesViewProps {
   categories: Category[];

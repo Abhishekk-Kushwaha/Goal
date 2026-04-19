@@ -1,137 +1,103 @@
 import React from "react";
+import {
+  DndContext,
+  DragOverlay,
+  defaultDropAnimationSideEffects,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  isSameMonth,
+  isToday,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
+import { AnimatePresence, motion } from "motion/react";
+import { ArrowLeft, CheckCircle2, ChevronRight, Plus, TrendingUp } from "lucide-react";
+import { Badge } from "../components/ui/Badge";
+import { Card } from "../components/ui/Card";
+import { DraggableMilestone } from "../components/dnd/DraggableMilestone";
+import { DroppableCalendarDay } from "../components/dnd/DroppableDay";
+import { cn } from "../lib/utils";
+import type { Milestone } from "../storage";
+import type { ViewType } from "../hooks/useAppRouter";
 
-export function CalendarView(props: any) {
+type CalendarItem = {
+  id: string;
+  title: string;
+  done?: boolean;
+  goalTitle?: string;
+  categoryColor?: string;
+  isHabit?: boolean;
+  isGoalAsMilestone?: boolean;
+};
+
+type UnassignedMilestone = Milestone & {
+  goalTitle: string;
+};
+
+type CalendarViewProps = {
+  setView: React.Dispatch<React.SetStateAction<ViewType>>;
+  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
+  setCurrentMonth: React.Dispatch<React.SetStateAction<Date>>;
+  setIsAddingMilestone: React.Dispatch<React.SetStateAction<boolean>>;
+  newMilestone: Partial<Milestone>;
+  setNewMilestone: React.Dispatch<React.SetStateAction<Partial<Milestone>>>;
+  toggleHabitOptimistic: (
+    id: string,
+    date?: string,
+    done?: boolean,
+  ) => void | Promise<void>;
+  toggleGoalCompletionOptimistic: (
+    id: string,
+    date?: string,
+    done?: boolean,
+  ) => void | Promise<void>;
+  toggleMilestone: (id: string, date?: string) => void | Promise<void>;
+  handleMarkAllDone: (ids: string[]) => void | Promise<void>;
+  handleCalendarDragStart: (event: DragStartEvent) => void;
+  handleCalendarDragEnd: (event: DragEndEvent) => void | Promise<void>;
+  getItemsForDate: (date: Date) => CalendarItem[];
+  currentMonth: Date;
+  selectedDate: Date;
+  milestonesForSelectedDate: CalendarItem[];
+  todayMilestones: CalendarItem[];
+  unassignedMilestones: UnassignedMilestone[];
+  sensors: React.ComponentProps<typeof DndContext>["sensors"];
+  activeCalendarDragId: string | null;
+  activeCalendarMilestone: UnassignedMilestone | null;
+};
+
+export function CalendarView(props: CalendarViewProps) {
   const {
-    motion,
-    AnimatePresence,
-    DndContext,
-    DragOverlay,
-    defaultDropAnimationSideEffects,
-    cn,
-    format,
-    parseISO,
-    addMonths,
-    subMonths,
-    startOfMonth,
-    endOfMonth,
-    startOfWeek,
-    endOfWeek,
-    eachDayOfInterval,
-    isSameMonth,
-    isSameDay,
-    isToday,
-    isPast,
-    PlannerView,
-    AssignTasksView,
-    Card,
-    Badge,
-    DraggableMilestone,
-    DroppableCalendarDay,
-    CircularProgress,
-    CustomBarTooltip,
-    CustomTooltip,
-    PRIORITY_COLORS,
-    isValidDate,
-    isCompletedOnDate,
     setView,
-    setTheme,
     setSelectedDate,
-    setActiveGoalId,
     setCurrentMonth,
-    setIsFocusMode,
-    setIsAddingGoal,
-    setIsAddingHabit,
     setIsAddingMilestone,
-    setIsCustomizingLayout,
-    setDismissedConquered,
     newMilestone,
     setNewMilestone,
-    setEditingGoal,
-    setNewGoal,
-    setEditingHabit,
-    setNewHabit,
     toggleHabitOptimistic,
     toggleGoalCompletionOptimistic,
     toggleMilestone,
-    deleteMilestone,
-    editMilestone,
-    handleAddPlannerTask,
-    handleDeleteGoal,
-    handleDeleteHabit,
-    handleDeleteCategory,
     handleMarkAllDone,
-    handleToggleToday,
-    handleArenaComplete,
     handleCalendarDragStart,
     handleCalendarDragEnd,
-    fetchGoals,
-    session,
-    supabase,
-    theme,
-    currentDate,
-    dashboardLayout,
-    stats,
-    chartData,
-    repeatabilityData,
-    categoryData,
-    trendData,
-    productivityInsights,
+    getItemsForDate,
     currentMonth,
     selectedDate,
     milestonesForSelectedDate,
     todayMilestones,
-    todayProgress,
-    yesterdayProgress,
-    yesterdayCompletedCount,
-    dismissedConquered,
-    personalBest,
-    highestStreak,
-    barPulse,
-    floatingPoints,
-    slidingOut,
-    showBreather,
-    breatherMessage,
-    lastCompleted,
-    breatherTimeout,
-    setBreatherTimeout,
-    setShowBreather,
-    setSlidingOut,
-    goals,
-    habits,
-    categories,
-    activeGoal,
-    activeGoalId,
     unassignedMilestones,
     sensors,
     activeCalendarDragId,
     activeCalendarMilestone,
-    getItemsForDate,
-    getHeroTheme,
-    getBarColor,
-    getHypeText,
-    getStreakMessage,
-    X,
-    Zap,
-    Plus,
-    CheckCircle2,
-    TrendingUp,
-    TrendingDown,
-    Trophy,
-    Target,
-    Settings,
-    Trash2,
-    ChevronRight,
-    ArrowLeft,
-    Activity,
-    Flame,
-    Calendar,
-    CalendarDays,
-    Sun,
-    Moon,
-    Award,
-    Clock,
-    LayoutDashboard,
-    User,
   } = props;
   return (
             <DndContext

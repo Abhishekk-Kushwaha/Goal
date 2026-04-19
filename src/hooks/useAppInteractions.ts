@@ -1,87 +1,176 @@
+import { useRef, type Dispatch, type SetStateAction } from "react";
 import { parseISO, isSameDay, isSameWeek, isSameMonth } from "date-fns";
 import { storage, isCompletedOnDate, type Goal, type Habit } from "../storage";
 
 interface UseAppInteractionsProps {
-  setHabits: React.Dispatch<React.SetStateAction<Habit[]>>;
-  setGoals: React.Dispatch<React.SetStateAction<Goal[]>>;
+  setHabits: Dispatch<SetStateAction<Habit[]>>;
+  setGoals: Dispatch<SetStateAction<Goal[]>>;
+}
+
+function dateKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function setCompletedDates(
+  completedDates: string[] | undefined,
+  repeat: string | undefined,
+  targetDate: Date,
+  done: boolean,
+) {
+  const currentDates = completedDates || [];
+  const alreadyCompleted = isCompletedOnDate(
+    { repeat, completed_dates: currentDates },
+    targetDate,
+  );
+
+  if (done && !alreadyCompleted) {
+    return [...currentDates, targetDate.toISOString()];
+  }
+
+  if (!done && alreadyCompleted) {
+    return currentDates.filter((d: string) => {
+      const dDate = parseISO(d);
+      if (repeat === "Daily") return !isSameDay(dDate, targetDate);
+      if (repeat === "Weekly") return !isSameWeek(dDate, targetDate);
+      if (repeat === "Monthly") return !isSameMonth(dDate, targetDate);
+      return true;
+    });
+  }
+
+  return currentDates;
 }
 
 export function useAppInteractions({ setHabits, setGoals }: UseAppInteractionsProps) {
+  const requestVersionsRef = useRef(new Map<string, number>());
+
+  const nextRequestVersion = (key: string) => {
+    const version = (requestVersionsRef.current.get(key) || 0) + 1;
+    requestVersionsRef.current.set(key, version);
+    return version;
+  };
+
+  const isLatestRequest = (key: string, version: number) => {
+    return requestVersionsRef.current.get(key) === version;
+  };
+
+  const setHabitCompletedOptimistic = async (
+    id: string,
+    date: string | undefined,
+    done: boolean,
+  ) => {
+    const targetDate = date ? parseISO(date) : new Date();
+    const requestKey = `habit:${id}:${dateKey(targetDate)}`;
+    const version = nextRequestVersion(requestKey);
+    let previousHabits: Habit[] | null = null;
+
+    setHabits((prev) => {
+      previousHabits = prev;
+      return prev.map((habit) =>
+        habit.id === id
+          ? {
+              ...habit,
+              completed_dates: setCompletedDates(
+                habit.completed_dates,
+                habit.repeat,
+                targetDate,
+                done,
+              ),
+            }
+          : habit,
+      );
+    });
+
+    try {
+      const updatedHabit = await storage.setHabitCompleted(id, targetDate, done);
+      if (updatedHabit && isLatestRequest(requestKey, version)) {
+        setHabits((prev) =>
+          prev.map((habit) =>
+            habit.id === updatedHabit.id ? updatedHabit : habit,
+          ),
+        );
+      }
+    } catch (err) {
+      console.error("Failed to set habit completion:", err);
+      if (isLatestRequest(requestKey, version) && previousHabits) {
+        setHabits(previousHabits);
+      }
+    }
+  };
+
+  const setGoalCompletionOptimistic = async (
+    id: string,
+    date: string | undefined,
+    done: boolean,
+  ) => {
+    const targetDate = date ? parseISO(date) : new Date();
+    const requestKey = `goal:${id}:${dateKey(targetDate)}`;
+    const version = nextRequestVersion(requestKey);
+    let previousGoals: Goal[] | null = null;
+
+    setGoals((prev) => {
+      previousGoals = prev;
+      return prev.map((goal) => {
+        if (goal.id !== id) return goal;
+
+        const updatedGoal = {
+          ...goal,
+          completed_dates: setCompletedDates(
+            goal.completed_dates,
+            goal.repeat,
+            targetDate,
+            done,
+          ),
+        };
+        storage.updateGoalProgress(updatedGoal);
+        return updatedGoal;
+      });
+    });
+
+    try {
+      const updatedGoal = await storage.setGoalCompleted(id, targetDate, done);
+      if (updatedGoal && isLatestRequest(requestKey, version)) {
+        setGoals((prev) =>
+          prev.map((goal) => (goal.id === updatedGoal.id ? updatedGoal : goal)),
+        );
+      }
+    } catch (err) {
+      console.error("Failed to set goal completion:", err);
+      if (isLatestRequest(requestKey, version) && previousGoals) {
+        setGoals(previousGoals);
+      }
+    }
+  };
+
   const toggleHabitOptimistic = async (id: string, date?: string) => {
     const targetDate = date ? parseISO(date) : new Date();
-    
-    setHabits((prev) =>
-      prev.map((h) => {
-        if (h.id === id) {
-          const isCompleted = isCompletedOnDate(h, targetDate);
-          let completed_dates = h.completed_dates || [];
-          if (isCompleted) {
-            completed_dates = completed_dates.filter((d: string) => {
-              const dDate = parseISO(d);
-              if (h.repeat === "Daily") return !isSameDay(dDate, targetDate);
-              if (h.repeat === "Weekly") return !isSameWeek(dDate, targetDate);
-              if (h.repeat === "Monthly") return !isSameMonth(dDate, targetDate);
-              return true;
-            });
-          } else {
-            completed_dates = [...completed_dates, targetDate.toISOString()];
-          }
-          return { ...h, completed_dates };
-        }
-        return h;
-      }),
-    );
+    let desiredDone = true;
 
-    storage
-      .toggleHabit(id, targetDate)
-      .then((updatedHabit) => {
-        if (updatedHabit) {
-          setHabits((prev) =>
-            prev.map((h) => (h.id === updatedHabit.id ? updatedHabit : h)),
-          );
-        }
-      })
-      .catch((err) => console.error("Failed to toggle habit:", err));
+    setHabits((prev) => {
+      const habit = prev.find((item) => item.id === id);
+      desiredDone = habit ? !isCompletedOnDate(habit, targetDate) : true;
+      return prev;
+    });
+
+    await setHabitCompletedOptimistic(id, targetDate.toISOString(), desiredDone);
   };
 
   const toggleGoalCompletionOptimistic = async (id: string, date?: string) => {
     const targetDate = date ? parseISO(date) : new Date();
-    
-    setGoals((prev) =>
-      prev.map((g) => {
-        if (g.id === id) {
-          const isCompleted = isCompletedOnDate(g, targetDate);
-          let completed_dates = g.completed_dates || [];
-          if (isCompleted) {
-            completed_dates = completed_dates.filter((d: string) => {
-              const dDate = parseISO(d);
-              if (g.repeat === "Daily") return !isSameDay(dDate, targetDate);
-              if (g.repeat === "Weekly") return !isSameWeek(dDate, targetDate);
-              if (g.repeat === "Monthly") return !isSameMonth(dDate, targetDate);
-              return true;
-            });
-          } else {
-            completed_dates = [...completed_dates, targetDate.toISOString()];
-          }
-          const updatedGoal = { ...g, completed_dates };
-          storage.updateGoalProgress(updatedGoal);
-          return updatedGoal;
-        }
-        return g;
-      }),
-    );
+    let desiredDone = true;
 
-    storage
-      .toggleGoalCompletion(id, targetDate)
-      .then((updatedGoal) => {
-        if (updatedGoal) {
-          setGoals((prev) =>
-            prev.map((g) => (g.id === updatedGoal.id ? updatedGoal : g)),
-          );
-        }
-      })
-      .catch((err) => console.error("Failed to toggle goal completion:", err));
+    setGoals((prev) => {
+      const goal = prev.find((item) => item.id === id);
+      desiredDone = goal ? !isCompletedOnDate(goal, targetDate) : true;
+      return prev;
+    });
+
+    await setGoalCompletionOptimistic(id, targetDate.toISOString(), desiredDone);
   };
 
-  return { toggleHabitOptimistic, toggleGoalCompletionOptimistic };
+  return {
+    setHabitCompletedOptimistic,
+    setGoalCompletionOptimistic,
+    toggleHabitOptimistic,
+    toggleGoalCompletionOptimistic,
+  };
 }

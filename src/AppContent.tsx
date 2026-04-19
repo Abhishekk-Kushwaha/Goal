@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   LayoutDashboard,
   Target,
@@ -318,9 +318,12 @@ export default function App() {
   const [installPlatform, setInstallPlatform] = useState<
     "prompt" | "ios" | "manual" | "installed"
   >("manual");
-  const [isInitialDataLoading, setIsInitialDataLoading] = useState(false);
   const [initialDataLoadedForUserId, setInitialDataLoadedForUserId] =
     useState<string | null>(null);
+  const sessionUserId = session?.user?.id || null;
+  const isInitialDataLoading = Boolean(
+    sessionUserId && initialDataLoadedForUserId !== sessionUserId,
+  );
 
   useEffect(() => {
     if (featuredGoalId) {
@@ -468,12 +471,9 @@ export default function App() {
 
   useEffect(() => {
     let isCancelled = false;
-    const userId = session?.user?.id || null;
+    const userId = sessionUserId;
 
     if (session && userId) {
-      const shouldShowInitialSkeleton = initialDataLoadedForUserId !== userId;
-      setIsInitialDataLoading(shouldShowInitialSkeleton);
-
       const loadData = async () => {
         await Promise.all([fetchGoals(), fetchCategories()]);
       };
@@ -487,18 +487,16 @@ export default function App() {
         .finally(() => {
           if (!isCancelled) {
             setInitialDataLoadedForUserId(userId);
-            setIsInitialDataLoading(false);
           }
         });
     } else {
       setInitialDataLoadedForUserId(null);
-      setIsInitialDataLoading(false);
     }
 
     return () => {
       isCancelled = true;
     };
-  }, [session?.user?.id]);
+  }, [sessionUserId]);
 
   useEffect(() => {
     if (categories.length === 0) return;
@@ -544,7 +542,13 @@ export default function App() {
     localStorage.setItem("forge_nav_order", JSON.stringify(navOrder));
   }, [navOrder]);
 
-  const { toggleHabitOptimistic, toggleGoalCompletionOptimistic } = useAppInteractions({ setHabits, setGoals });
+  const {
+    setHabitCompletedOptimistic,
+    setGoalCompletionOptimistic,
+    toggleHabitOptimistic,
+    toggleGoalCompletionOptimistic,
+  } = useAppInteractions({ setHabits, setGoals });
+  const milestoneRequestVersionsRef = useRef(new Map<string, number>());
 
   const {
     todayMilestones,
@@ -572,13 +576,16 @@ export default function App() {
     handleArenaComplete,
     todayCompletedCount,
     todayTotalCount,
+    pendingTodayTaskKeys,
+    getTodayTaskKey,
   } = useToday({
     allCalendarItems,
     goals,
     getItemsForDate,
-    toggleHabitOptimistic,
-    toggleGoalCompletionOptimistic,
-    toggleMilestone: (id, date) => toggleMilestone(id, date),
+    setHabitCompleted: setHabitCompletedOptimistic,
+    setGoalCompleted: setGoalCompletionOptimistic,
+    setMilestoneCompleted: (id, date, done) =>
+      setMilestoneCompletedOptimistic(id, date, done),
     setDismissedConquered,
   });
 
@@ -763,56 +770,130 @@ export default function App() {
     }
   };
 
-  const toggleMilestone = async (id: string, date?: string) => {
+  const getMilestoneRequestKey = (id: string, targetDate: Date) =>
+    `milestone:${id}:${targetDate.toISOString().slice(0, 10)}`;
+
+  const nextMilestoneRequestVersion = (key: string) => {
+    const version = (milestoneRequestVersionsRef.current.get(key) || 0) + 1;
+    milestoneRequestVersionsRef.current.set(key, version);
+    return version;
+  };
+
+  const isLatestMilestoneRequest = (key: string, version: number) => {
+    return milestoneRequestVersionsRef.current.get(key) === version;
+  };
+
+  const getCompletedDatesForState = (
+    completedDates: string[] | undefined,
+    repeat: string | undefined,
+    targetDate: Date,
+    done: boolean,
+  ) => {
+    const currentDates = completedDates || [];
+    const isCompleted = isCompletedOnDate(
+      { repeat, completed_dates: currentDates },
+      targetDate,
+    );
+
+    if (done && !isCompleted) {
+      return [...currentDates, targetDate.toISOString()];
+    }
+
+    if (!done && isCompleted) {
+      return currentDates.filter((d: string) => {
+        const dDate = parseISO(d);
+        if (repeat === "Daily") return !isSameDay(dDate, targetDate);
+        if (repeat === "Weekly") return !isSameWeek(dDate, targetDate);
+        if (repeat === "Monthly") return !isSameMonth(dDate, targetDate);
+        return true;
+      });
+    }
+
+    return currentDates;
+  };
+
+  const setMilestoneCompletedOptimistic = async (
+    id: string,
+    date: string | undefined,
+    done: boolean,
+  ) => {
     const targetDate = date ? parseISO(date) : new Date();
-    setGoals((prev) =>
-      prev.map((g) => {
+    const requestKey = getMilestoneRequestKey(id, targetDate);
+    const version = nextMilestoneRequestVersion(requestKey);
+    let previousGoals: Goal[] | null = null;
+
+    setGoals((prev) => {
+      previousGoals = prev;
+      return prev.map((g) => {
         const milestone = g.milestones?.find((m) => m.id === id);
         if (!milestone) return g;
 
         const updatedMilestone = { ...milestone };
 
         if (updatedMilestone.repeat && updatedMilestone.repeat !== "None") {
-          const isCompleted = isCompletedOnDate(updatedMilestone, targetDate);
-          let completed_dates = updatedMilestone.completed_dates || [];
-
-          if (isCompleted) {
-            completed_dates = completed_dates.filter((d: string) => {
-              const dDate = parseISO(d);
-              if (updatedMilestone.repeat === "Daily") return !isSameDay(dDate, targetDate);
-              if (updatedMilestone.repeat === "Weekly") return !isSameWeek(dDate, targetDate);
-              if (updatedMilestone.repeat === "Monthly") return !isSameMonth(dDate, targetDate);
-              return true;
-            });
-          } else {
-            completed_dates = [...completed_dates, targetDate.toISOString()];
-          }
-
-          updatedMilestone.completed_dates = completed_dates;
+          updatedMilestone.completed_dates = getCompletedDatesForState(
+            updatedMilestone.completed_dates,
+            updatedMilestone.repeat,
+            targetDate,
+            done,
+          );
         } else {
-          updatedMilestone.done = !updatedMilestone.done;
-          updatedMilestone.completed_at = updatedMilestone.done
+          updatedMilestone.done = done;
+          updatedMilestone.completed_at = done
             ? new Date().toISOString()
             : undefined;
         }
 
-        return {
+        const updatedGoal = {
           ...g,
           milestones: g.milestones?.map((m) => (m.id === id ? updatedMilestone : m)),
         };
-      }),
-    );
+        storage.updateGoalProgress(updatedGoal);
+        return updatedGoal;
+      });
+    });
 
-    storage
-      .toggleMilestone(id, date ? parseISO(date) : undefined)
-      .then((updatedGoal) => {
-        if (updatedGoal) {
-          setGoals((prev) =>
-            prev.map((g) => (g.id === updatedGoal.id ? updatedGoal : g)),
-          );
-        }
-      })
-      .catch((err) => console.error("Failed to toggle milestone:", err));
+    try {
+      const updatedGoal = await storage.setMilestoneCompleted(
+        id,
+        targetDate,
+        done,
+      );
+      if (updatedGoal && isLatestMilestoneRequest(requestKey, version)) {
+        setGoals((prev) =>
+          prev.map((g) => (g.id === updatedGoal.id ? updatedGoal : g)),
+        );
+      }
+    } catch (err) {
+      console.error("Failed to set milestone completion:", err);
+      if (isLatestMilestoneRequest(requestKey, version) && previousGoals) {
+        setGoals(previousGoals);
+      }
+    }
+  };
+
+  const toggleMilestone = async (id: string, date?: string) => {
+    const targetDate = date ? parseISO(date) : new Date();
+    let desiredDone = true;
+
+    setGoals((prev) => {
+      const targetGoal = prev.find((goal) =>
+        goal.milestones?.some((milestone) => milestone.id === id),
+      );
+      const milestone = targetGoal?.milestones?.find((item) => item.id === id);
+      desiredDone = milestone
+        ? milestone.repeat && milestone.repeat !== "None"
+          ? !isCompletedOnDate(milestone, targetDate)
+          : !milestone.done
+        : true;
+      return prev;
+    });
+
+    await setMilestoneCompletedOptimistic(
+      id,
+      targetDate.toISOString(),
+      desiredDone,
+    );
   };
   useEffect(() => {
     setIsAddingGoal(false);
@@ -1002,6 +1083,8 @@ export default function App() {
     showMomentumMobile,
     todayCompletedCount,
     todayTotalCount,
+    pendingTodayTaskKeys,
+    getTodayTaskKey,
     setIsAddingGoal,
     setIsAddingHabit,
     setIsAddingMilestone,

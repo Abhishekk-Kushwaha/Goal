@@ -34,6 +34,8 @@ export function TodayView(props: any) {
     yesterdayProgress = 0,
     todayCompletedCount = 0,
     todayTotalCount = 0,
+    pendingTodayTaskKeys = new Set(),
+    getTodayTaskKey,
     completedExpanded,
     setCompletedExpanded,
     showBreather,
@@ -61,6 +63,11 @@ export function TodayView(props: any) {
   const remainingCount = Math.max(todayTotalCount - todayCompletedCount, 0);
   const aheadOfYesterday = todayProgress >= yesterdayProgress;
   const focusTask = incompleteTasks[0];
+  const focusTaskSaving = Boolean(
+    focusTask &&
+      getTodayTaskKey &&
+      pendingTodayTaskKeys.has(getTodayTaskKey(focusTask)),
+  );
 
   const weekStats = React.useMemo(() => {
     return [...Array(7)].map((_, index) => {
@@ -272,12 +279,18 @@ export function TodayView(props: any) {
       ? `Habit streak: ${task.streak || 9} days`
       : [task.goalTitle, task.category].filter(Boolean).join(" · ") || "General Tasks";
     const metadataAccent = isHabit ? ACCENT : color;
+    const isSaving = Boolean(
+      getTodayTaskKey && pendingTodayTaskKeys.has(getTodayTaskKey(task)),
+    );
 
     return (
       <motion.div
         layout
-        whileTap={{ scale: 0.992 }}
-        className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] px-3.5 py-3 shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]"
+        whileTap={isSaving ? undefined : { scale: 0.992 }}
+        className={cn(
+          "relative overflow-hidden rounded-xl border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] px-3.5 py-3 shadow-[0_18px_48px_-38px_rgba(0,0,0,1)] transition-opacity",
+          isSaving && "opacity-75",
+        )}
       >
         <div
           className="absolute -left-10 top-1/2 h-16 w-16 -translate-y-1/2 rounded-full blur-2xl"
@@ -308,11 +321,11 @@ export function TodayView(props: any) {
               <button
                 type="button"
                 onClick={(event) => handleArenaComplete(task, event)}
-                disabled={Boolean(task.__placeholder)}
-                className="flex h-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 text-[12px] font-semibold tracking-[-0.01em] text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/88 disabled:opacity-55"
+                disabled={Boolean(task.__placeholder) || isSaving}
+                className="flex h-9 min-w-[68px] shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 text-[12px] font-semibold tracking-[-0.01em] text-white/68 transition-colors hover:bg-white/[0.06] hover:text-white/88 disabled:cursor-wait disabled:opacity-55"
                 aria-label={`Complete ${title}`}
               >
-                <span>Done</span>
+                <span>{isSaving ? "Saving" : "Done"}</span>
               </button>
             </div>
           </div>
@@ -380,9 +393,10 @@ export function TodayView(props: any) {
                   handleArenaComplete(focusTask, event);
                   setIsFocusMode(false);
                 }}
-                className="mt-10 h-14 w-full rounded-full border border-emerald-300/20 bg-emerald-400/[0.08] text-[16px] font-semibold text-emerald-100 shadow-[0_18px_42px_-32px_rgba(52,211,153,1)] transition-colors hover:bg-emerald-400/[0.12]"
+                disabled={focusTaskSaving}
+                className="mt-10 h-14 w-full rounded-full border border-emerald-300/20 bg-emerald-400/[0.08] text-[16px] font-semibold text-emerald-100 shadow-[0_18px_42px_-32px_rgba(52,211,153,1)] transition-colors hover:bg-emerald-400/[0.12] disabled:cursor-wait disabled:opacity-60"
               >
-                Complete focus
+                {focusTaskSaving ? "Saving" : "Complete focus"}
               </button>
             </div>
           </motion.div>
@@ -463,29 +477,36 @@ export function TodayView(props: any) {
                 className="overflow-hidden"
               >
                 <div className="space-y-2 border-t border-white/[0.055] p-3">
-                  {completedTasks.length > 0 ? completedTasks.map((task: any) => (
-                    <button
-                      key={task.id}
-                      type="button"
-                      onClick={() => handleToggleToday(task)}
-                      className="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.025]"
-                    >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-amber-300/18 bg-amber-400/[0.12] text-amber-200">
-                        <CheckCircle2 className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-medium text-white/54 line-through">
-                          {task.title}
-                        </p>
-                        <p className="truncate text-[11px] text-white/24">
-                          {task.goalTitle || task.category || "Completed"}
-                        </p>
-                      </div>
-                      <span className="shrink-0 rounded-full border border-white/[0.06] bg-white/[0.035] px-2.5 py-1 text-[11px] font-semibold text-white/34">
-                        Reopen
-                      </span>
-                    </button>
-                  )) : (
+                  {completedTasks.length > 0 ? completedTasks.map((task: any) => {
+                    const isSaving = Boolean(
+                      getTodayTaskKey && pendingTodayTaskKeys.has(getTodayTaskKey(task)),
+                    );
+
+                    return (
+                      <button
+                        key={task.id}
+                        type="button"
+                        onClick={() => handleToggleToday(task, false)}
+                        disabled={isSaving}
+                        className="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.025] disabled:cursor-wait disabled:opacity-55"
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-amber-300/18 bg-amber-400/[0.12] text-amber-200">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[14px] font-medium text-white/54 line-through">
+                            {task.title}
+                          </p>
+                          <p className="truncate text-[11px] text-white/24">
+                            {task.goalTitle || task.category || "Completed"}
+                          </p>
+                        </div>
+                        <span className="min-w-[58px] shrink-0 rounded-full border border-white/[0.06] bg-white/[0.035] px-2.5 py-1 text-center text-[11px] font-semibold text-white/34">
+                          {isSaving ? "Saving" : "Reopen"}
+                        </span>
+                      </button>
+                    );
+                  }) : (
                     <p className="px-2 py-3 text-[13px] font-medium text-white/28">
                       Nothing completed yet.
                     </p>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 import { type Goal } from "../storage";
 
@@ -10,12 +10,21 @@ type UseTodayOptions = {
   allCalendarItems: TodayItem[];
   goals: Goal[];
   getItemsForDate: (date: Date) => TodayItem[];
-  toggleHabitOptimistic: (id: string, date?: string) => void | Promise<void>;
-  toggleGoalCompletionOptimistic: (
+  setHabitCompleted: (
     id: string,
     date?: string,
+    done?: boolean,
   ) => void | Promise<void>;
-  toggleMilestone: (id: string, date?: string) => void | Promise<void>;
+  setGoalCompleted: (
+    id: string,
+    date?: string,
+    done?: boolean,
+  ) => void | Promise<void>;
+  setMilestoneCompleted: (
+    id: string,
+    date?: string,
+    done?: boolean,
+  ) => void | Promise<void>;
   setDismissedConquered?: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
@@ -23,9 +32,9 @@ export function useToday({
   allCalendarItems,
   goals,
   getItemsForDate,
-  toggleHabitOptimistic,
-  toggleGoalCompletionOptimistic,
-  toggleMilestone,
+  setHabitCompleted,
+  setGoalCompleted,
+  setMilestoneCompleted,
   setDismissedConquered,
 }: UseTodayOptions) {
   const [yesterdayProgress, setYesterdayProgress] = useState<number>(() => {
@@ -43,6 +52,19 @@ export function useToday({
   const [floatingPoints, setFloatingPoints] = useState<
     { id: string; points: number; x: number; y: number }[]
   >([]);
+  const [pendingTodayTaskKeys, setPendingTodayTaskKeys] = useState<Set<string>>(
+    new Set(),
+  );
+  const pendingTodayTaskKeysRef = useRef(new Set<string>());
+
+  const getTodayTaskKey = (task: TodayItem, date = new Date()) => {
+    const type = task.isHabit
+      ? "habit"
+      : task.isGoalAsMilestone
+        ? "goal"
+        : "milestone";
+    return `${type}:${task.id}:${date.toISOString().slice(0, 10)}`;
+  };
 
   const todayMilestones = useMemo(() => {
     return getItemsForDate(new Date());
@@ -178,17 +200,19 @@ export function useToday({
     return "#C8F55A";
   };
 
-  const handleToggleToday = async (ms: TodayItem) => {
+  const handleToggleToday = async (ms: TodayItem, desiredDone?: boolean) => {
     const targetDate = new Date();
-    const isCompleting = !ms.done;
+    const taskKey = getTodayTaskKey(ms, targetDate);
+    if (pendingTodayTaskKeysRef.current.has(taskKey)) return;
 
-    if (ms.isHabit) {
-      toggleHabitOptimistic(ms.id, targetDate.toISOString());
-    } else if (ms.isGoalAsMilestone) {
-      toggleGoalCompletionOptimistic(ms.id, targetDate.toISOString());
-    } else {
-      toggleMilestone(ms.id, targetDate.toISOString());
-    }
+    const isCompleting = desiredDone ?? !ms.done;
+    pendingTodayTaskKeysRef.current.add(taskKey);
+
+    setPendingTodayTaskKeys((prev) => {
+      const next = new Set(prev);
+      next.add(taskKey);
+      return next;
+    });
 
     const doneCount = todayMilestones.filter((m) => m.done).length;
     if (
@@ -201,6 +225,23 @@ export function useToday({
         spread: 70,
         origin: { y: 0.6 },
         colors: ["#10b981", "#34d399", "#6ee7b7"],
+      });
+    }
+
+    try {
+      if (ms.isHabit) {
+        await setHabitCompleted(ms.id, targetDate.toISOString(), isCompleting);
+      } else if (ms.isGoalAsMilestone) {
+        await setGoalCompleted(ms.id, targetDate.toISOString(), isCompleting);
+      } else {
+        await setMilestoneCompleted(ms.id, targetDate.toISOString(), isCompleting);
+      }
+    } finally {
+      pendingTodayTaskKeysRef.current.delete(taskKey);
+      setPendingTodayTaskKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(taskKey);
+        return next;
       });
     }
   };
@@ -240,10 +281,10 @@ export function useToday({
       setLastCompleted(task.title);
 
       // Immediately complete the task — no delay
-      handleToggleToday(task);
+      void handleToggleToday(task, true);
 
     } else {
-      handleToggleToday(task);
+      void handleToggleToday(task, false);
     }
   };
 
@@ -278,5 +319,7 @@ export function useToday({
     getTaskPoints,
     handleToggleToday,
     handleArenaComplete,
+    pendingTodayTaskKeys,
+    getTodayTaskKey,
   };
 }

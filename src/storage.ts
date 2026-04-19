@@ -116,6 +116,35 @@ export function isCompletedOnDate(item: { repeat?: string, completed_dates?: str
   });
 }
 
+function setCompletedDateState(
+  completedDates: string[] | undefined,
+  repeat: string | undefined,
+  targetDate: Date,
+  done: boolean,
+) {
+  const currentDates = completedDates || [];
+  const alreadyCompleted = isCompletedOnDate(
+    { repeat, completed_dates: currentDates },
+    targetDate,
+  );
+
+  if (done && !alreadyCompleted) {
+    return [...currentDates, targetDate.toISOString()];
+  }
+
+  if (!done && alreadyCompleted) {
+    return currentDates.filter((d: string) => {
+      const dDate = fastParseISO(d);
+      if (repeat === 'Daily') return !isSameDay(dDate, targetDate);
+      if (repeat === 'Weekly') return !isSameWeek(dDate, targetDate);
+      if (repeat === 'Monthly') return !isSameMonth(dDate, targetDate);
+      return true;
+    });
+  }
+
+  return currentDates;
+}
+
 function addDaysToDate(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
@@ -383,7 +412,7 @@ export const storage = {
     return await this.recalculateGoalProgress(milestone.goal_id);
   },
 
-  async toggleMilestone(id: string, date?: Date) {
+  async setMilestoneCompleted(id: string, date: Date | undefined, done: boolean) {
     const user = await this.getUser();
     if (!user) return;
 
@@ -399,34 +428,84 @@ export const storage = {
     const updates: any = {};
     if (milestone.repeat && milestone.repeat !== 'None') {
       const targetDate = date || new Date();
-      const isCompleted = isCompletedOnDate(milestone, targetDate);
-      let completed_dates = milestone.completed_dates || [];
-      
-      if (isCompleted) {
-        completed_dates = completed_dates.filter((d: string) => {
-          const dDate = fastParseISO(d);
-          if (milestone.repeat === 'Daily') return !isSameDay(dDate, targetDate);
-          if (milestone.repeat === 'Weekly') return !isSameWeek(dDate, targetDate);
-          if (milestone.repeat === 'Monthly') return !isSameMonth(dDate, targetDate);
-          return true;
-        });
-      } else {
-        completed_dates = [...completed_dates, targetDate.toISOString()];
-      }
-      updates.completed_dates = completed_dates;
+      updates.completed_dates = setCompletedDateState(
+        milestone.completed_dates,
+        milestone.repeat,
+        targetDate,
+        done,
+      );
     } else {
-      updates.done = !milestone.done;
-      updates.completed_at = updates.done ? new Date().toISOString() : null;
+      updates.done = done;
+      updates.completed_at = done ? new Date().toISOString() : null;
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('milestones')
       .update(updates)
       .eq('id', id)
       .eq('user_id', user.id);
 
+    if (updateError) throw updateError;
+
     // Update parent goal progress
     return await this.recalculateGoalProgress(milestone.goal_id);
+  },
+
+  async toggleMilestone(id: string, date?: Date) {
+    const user = await this.getUser();
+    if (!user) return;
+
+    const { data: milestone, error: fetchError } = await supabase
+      .from('milestones')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (fetchError || !milestone) return;
+
+    const targetDate = date || new Date();
+    const done =
+      milestone.repeat && milestone.repeat !== 'None'
+        ? !isCompletedOnDate(milestone, targetDate)
+        : !milestone.done;
+
+    return await this.setMilestoneCompleted(id, targetDate, done);
+  },
+
+  async setGoalCompleted(id: string, date: Date | undefined, done: boolean): Promise<Goal | null> {
+    const user = await this.getUser();
+    if (!user) return null;
+
+    const { data: goal, error: fetchError } = await supabase
+      .from('goals')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (fetchError || !goal) return null;
+
+    if (goal.repeat && goal.repeat !== 'None') {
+      const targetDate = date || new Date();
+      const completed_dates = setCompletedDateState(
+        goal.completed_dates,
+        goal.repeat,
+        targetDate,
+        done,
+      );
+      
+      const { error: updateError } = await supabase
+        .from('goals')
+        .update({ completed_dates })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+        
+      return await this.recalculateGoalProgress(id);
+    }
+    return null;
   },
 
   async toggleGoalCompletion(id: string, date?: Date): Promise<Goal | null> {
@@ -442,32 +521,12 @@ export const storage = {
 
     if (fetchError || !goal) return null;
 
-    if (goal.repeat && goal.repeat !== 'None') {
-      const targetDate = date || new Date();
-      const isCompleted = isCompletedOnDate(goal, targetDate);
-      let completed_dates = goal.completed_dates || [];
-      
-      if (isCompleted) {
-        completed_dates = completed_dates.filter((d: string) => {
-          const dDate = fastParseISO(d);
-          if (goal.repeat === 'Daily') return !isSameDay(dDate, targetDate);
-          if (goal.repeat === 'Weekly') return !isSameWeek(dDate, targetDate);
-          if (goal.repeat === 'Monthly') return !isSameMonth(dDate, targetDate);
-          return true;
-        });
-      } else {
-        completed_dates = [...completed_dates, targetDate.toISOString()];
-      }
-      
-      await supabase
-        .from('goals')
-        .update({ completed_dates })
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
-      return await this.recalculateGoalProgress(id);
-    }
-    return null;
+    const targetDate = date || new Date();
+    return await this.setGoalCompleted(
+      id,
+      targetDate,
+      !isCompletedOnDate(goal, targetDate),
+    );
   },
 
   async setMilestonesDone(ids: string[], done: boolean, date?: Date) {
@@ -758,6 +817,42 @@ export const storage = {
       .eq('user_id', user.id);
   },
 
+  async setHabitCompleted(id: string, date: Date | undefined, done: boolean): Promise<Habit | null> {
+    const user = await this.getUser();
+    if (!user) return null;
+
+    const { data: habit } = await supabase
+      .from('habits')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!habit) return null;
+
+    const targetDate = date || new Date();
+    const completed_dates = setCompletedDateState(
+      habit.completed_dates,
+      habit.repeat,
+      targetDate,
+      done,
+    );
+    
+    const streak = this.calculateHabitStreak({ ...habit, completed_dates });
+    
+    const { data: updatedHabit, error: updateError } = await supabase
+      .from('habits')
+      .update({ completed_dates, streak })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+      
+    return updatedHabit;
+  },
+
   async toggleHabit(id: string, date?: Date): Promise<Habit | null> {
     const user = await this.getUser();
     if (!user) return null;
@@ -772,32 +867,11 @@ export const storage = {
     if (!habit) return null;
 
     const targetDate = date || new Date();
-    const isCompleted = isCompletedOnDate(habit, targetDate);
-    let completed_dates = habit.completed_dates || [];
-    
-    if (isCompleted) {
-      completed_dates = completed_dates.filter((d: string) => {
-        const dDate = fastParseISO(d);
-        if (habit.repeat === 'Daily') return !isSameDay(dDate, targetDate);
-        if (habit.repeat === 'Weekly') return !isSameWeek(dDate, targetDate);
-        if (habit.repeat === 'Monthly') return !isSameMonth(dDate, targetDate);
-        return true;
-      });
-    } else {
-      completed_dates = [...completed_dates, targetDate.toISOString()];
-    }
-    
-    const streak = this.calculateHabitStreak({ ...habit, completed_dates });
-    
-    const { data: updatedHabit } = await supabase
-      .from('habits')
-      .update({ completed_dates, streak })
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single();
-      
-    return updatedHabit;
+    return await this.setHabitCompleted(
+      id,
+      targetDate,
+      !isCompletedOnDate(habit, targetDate),
+    );
   },
 
   calculateHabitStreak(habit: Habit): number {

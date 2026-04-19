@@ -114,10 +114,6 @@ export function DashboardView(props: any) {
     setShowInstallHelp,
     installPlatform,
     isAppInstalled,
-    notificationsSupported,
-    notificationPermission,
-    notificationSettings,
-    setShowNotificationSettings,
     goals,
     habits,
     categories,
@@ -173,22 +169,6 @@ export function DashboardView(props: any) {
                   </p>
                 </div>
                 <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                  <button
-                    onClick={() => setShowNotificationSettings(true)}
-                    className={cn(
-                      "px-4 py-2 rounded-xl border transition-colors flex items-center gap-2 text-sm font-medium",
-                      notificationSettings.enabled && notificationPermission === "granted"
-                        ? "dark:bg-emerald-500/10 bg-emerald-50 border-emerald-400/20 text-emerald-400"
-                        : "dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200 dark:text-stone-300 text-stone-700 hover:dark:text-white hover:text-stone-900",
-                    )}
-                    disabled={!notificationsSupported}
-                  >
-                    <span>
-                      {notificationSettings.enabled && notificationPermission === "granted"
-                        ? "Notifications On"
-                        : "Notifications"}
-                    </span>
-                  </button>
                   <button
                     onClick={requestInstallApp}
                     className={cn(

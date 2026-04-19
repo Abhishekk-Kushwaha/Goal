@@ -318,6 +318,9 @@ export default function App() {
   const [installPlatform, setInstallPlatform] = useState<
     "prompt" | "ios" | "manual" | "installed"
   >("manual");
+  const [isInitialDataLoading, setIsInitialDataLoading] = useState(false);
+  const [initialDataLoadedForUserId, setInitialDataLoadedForUserId] =
+    useState<string | null>(null);
 
   useEffect(() => {
     if (featuredGoalId) {
@@ -465,23 +468,37 @@ export default function App() {
 
   useEffect(() => {
     let isCancelled = false;
+    const userId = session?.user?.id || null;
 
-    if (session) {
+    if (session && userId) {
+      const shouldShowInitialSkeleton = initialDataLoadedForUserId !== userId;
+      setIsInitialDataLoading(shouldShowInitialSkeleton);
+
       const loadData = async () => {
         await Promise.all([fetchGoals(), fetchCategories()]);
       };
 
-      void loadData().catch((error) => {
-        if (!isCancelled) {
-          console.error("Initial app data failed to load:", error);
-        }
-      });
+      void loadData()
+        .catch((error) => {
+          if (!isCancelled) {
+            console.error("Initial app data failed to load:", error);
+          }
+        })
+        .finally(() => {
+          if (!isCancelled) {
+            setInitialDataLoadedForUserId(userId);
+            setIsInitialDataLoading(false);
+          }
+        });
+    } else {
+      setInitialDataLoadedForUserId(null);
+      setIsInitialDataLoading(false);
     }
 
     return () => {
       isCancelled = true;
     };
-  }, [session]);
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (categories.length === 0) return;
@@ -1012,6 +1029,7 @@ export default function App() {
     fetchGoals,
     session,
     supabase,
+    isInitialDataLoading,
     theme,
     currentDate,
     dashboardLayout,

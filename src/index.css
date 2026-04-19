@@ -88,6 +88,12 @@
   }
 }
 
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .animate-fade-up {
   animation: fade-up 0.4s ease-out forwards;
 }

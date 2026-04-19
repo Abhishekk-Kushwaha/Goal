@@ -9,6 +9,7 @@ import { HabitsView } from "../views/HabitsView";
 import { PlannerView } from "../views/PlannerView";
 import { CalendarView } from "../views/CalendarView";
 import { AssignTasksView } from "../views/AssignTasksView";
+import { InitialDataSkeleton } from "./InitialDataSkeleton";
 import type { ViewType } from "../hooks/useAppRouter";
 
 interface ViewContainerProps {
@@ -17,6 +18,14 @@ interface ViewContainerProps {
 }
 
 export const ViewContainer: React.FC<ViewContainerProps> = ({ view, sharedViewProps }) => {
+  if (sharedViewProps.isInitialDataLoading) {
+    return (
+      <AnimatePresence mode="wait">
+        <InitialDataSkeleton key={`initial-${view}`} view={view} />
+      </AnimatePresence>
+    );
+  }
+
   return (
     <AnimatePresence mode="wait">
       {view === "today" ? (

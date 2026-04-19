@@ -29,20 +29,6 @@ import {
   User,
   Check,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  PieChart,
-  Pie,
-  AreaChart,
-  Area,
-} from "recharts";
 import { motion, AnimatePresence, Reorder } from "motion/react";
 import {
   DndContext,
@@ -130,12 +116,7 @@ const PRIORITY_COLORS = {
 
 type WidgetId =
   | "stats"
-  | "progress"
-  | "categories"
-  | "focus"
-  | "goals"
-  | "trends"
-  | "repeatability";
+  | "progress";
 
 interface WidgetConfig {
   id: WidgetId;
@@ -168,17 +149,14 @@ export default function App() {
     const defaultLayout: WidgetConfig[] = [
       { id: "stats", visible: true, label: "Quick Stats" },
       { id: "progress", visible: true, label: "Goal Progress" },
-      { id: "trends", visible: true, label: "Historical Trends" },
-      { id: "repeatability", visible: true, label: "Repeatability Track" },
-      { id: "categories", visible: true, label: "Category Breakdown" },
-      { id: "focus", visible: true, label: "Today's Focus" },
     ];
+    const allowedWidgetIds = new Set(defaultLayout.map((widget) => widget.id));
 
     const saved = localStorage.getItem("forge_dashboard_layout");
     if (saved) {
       try {
-        const parsed: WidgetConfig[] = JSON.parse(saved);
-        const merged = [...parsed];
+        const parsed = JSON.parse(saved) as WidgetConfig[];
+        const merged = parsed.filter((widget) => allowedWidgetIds.has(widget.id));
         defaultLayout.forEach((def) => {
           if (!merged.find((m) => m.id === def.id)) {
             merged.push(def);
@@ -496,7 +474,7 @@ export default function App() {
   >(() => {
     const defaultNav = [
       { id: "today", label: "Today", icon: "Sun" },
-      { id: "dash", label: "Dashboard", icon: "LayoutDashboard" },
+      { id: "dash", label: "Profile", icon: "LayoutDashboard" },
       { id: "planner", label: "Planner", icon: "CalendarDays" },
       { id: "habits", label: "Habits", icon: "Activity" },
       { id: "goals", label: "Goals", icon: "Target" },
@@ -573,14 +551,9 @@ export default function App() {
   const {
     stats,
     chartData,
-    categoryData,
-    trendData,
-    productivityInsights,
-    repeatabilityData,
   } = useDashboardData({
     goals,
     categories,
-    allCalendarItems,
     activeGoalId,
   });
 
@@ -1091,10 +1064,6 @@ export default function App() {
     dashboardLayout,
     stats,
     chartData,
-    repeatabilityData,
-    categoryData,
-    trendData,
-    productivityInsights,
     currentMonth,
     selectedDate,
     milestonesForSelectedDate,

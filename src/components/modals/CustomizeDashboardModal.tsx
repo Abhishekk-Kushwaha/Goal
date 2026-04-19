@@ -41,7 +41,7 @@ export const CustomizeDashboardModal: React.FC<CustomizeDashboardModalProps> = (
       >
         <div className="p-6 md:p-8">
           <h3 className="text-xl font-extrabold dark:text-white text-stone-900 tracking-tight mb-2">
-            Customize Dashboard
+            Customize Profile
           </h3>
           <p className="dark:text-stone-500 text-stone-600 text-sm mb-8">
             Drag to reorder widgets and toggle visibility.
@@ -97,10 +97,6 @@ export const CustomizeDashboardModal: React.FC<CustomizeDashboardModalProps> = (
                 const defaultLayout: WidgetConfig[] = [
                   { id: "stats", visible: true, label: "Quick Stats" },
                   { id: "progress", visible: true, label: "Goal Progress" },
-                  { id: "trends", visible: true, label: "Historical Trends" },
-                  { id: "repeatability", visible: true, label: "Repeatability Track" },
-                  { id: "categories", visible: true, label: "Category Breakdown" },
-                  { id: "focus", visible: true, label: "Today's Focus" },
                 ];
                 setDashboardLayout(defaultLayout);
               }}

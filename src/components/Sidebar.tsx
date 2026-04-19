@@ -46,12 +46,12 @@ export function Sidebar(props: {
     { id: "planner", icon: CalendarDays, label: "Planner" },
     { id: "habits", icon: Activity, label: "Habits" },
     { id: "goals", icon: LayoutDashboard, label: "Goals" },
-    { id: "dashboard", icon: Sun, label: "Dashboard" },
+    { id: "dashboard", icon: Sun, label: "Profile" },
   ];
 
   const drawerNavItems = [
     { id: "today", icon: Sun, label: "Today" },
-    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { id: "dashboard", icon: LayoutDashboard, label: "Profile" },
     { id: "habits", icon: Activity, label: "Habits" },
     { id: "goals", icon: Target, label: "Goals" },
     { id: "categories", icon: Filter, label: "Categories" },

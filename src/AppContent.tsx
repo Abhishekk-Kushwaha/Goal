@@ -87,6 +87,7 @@ import {
 } from "./components/dnd/DroppableDay";
 import { CircularProgress as SharedCircularProgress } from "./components/ui/CircularProgress";
 import { ViewContainer } from "./components/ViewContainer";
+import { InitialDataSkeleton } from "./components/InitialDataSkeleton";
 import { useAppRouter } from "./hooks/useAppRouter";
 import { useAppInteractions } from "./hooks/useAppInteractions";
 import { useGoals } from "./hooks/useGoals";
@@ -1023,15 +1024,7 @@ export default function App() {
     [goals, activeGoalId],
   );
   if (isSessionLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090b0f]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full"
-        />
-      </div>
-    );
+    return <InitialDataSkeleton view={view} />;
   }
 
   if (supabase && !session) {

@@ -403,7 +403,7 @@ export function TodayView(props: any) {
         ) : null}
       </AnimatePresence>
 
-      <div className="relative mx-auto flex w-full max-w-[430px] flex-col gap-5 md:max-w-3xl">
+      <div className="relative mx-auto flex w-full max-w-[430px] flex-col gap-5">
         <MomentumCard />
         <HeroCard />
 

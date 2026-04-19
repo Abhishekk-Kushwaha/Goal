@@ -907,7 +907,6 @@ export default function App() {
     setIsFocusMode(false);
     setIsCustomizingLayout(false);
     setIsCustomizingNav(false);
-    setIsMobileMenuOpen(false);
   }, [view]);
 
   useEffect(() => {
@@ -1193,23 +1192,20 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-[#090b0f] font-sans selection:bg-orange-500/30">
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      <Sidebar
+        view={view}
+        setView={setView}
+        setActiveGoalId={setActiveGoalId}
+        isMenuOpen={isMobileMenuOpen}
+        setIsMenuOpen={setIsMobileMenuOpen}
+        stats={stats}
+        supabase={supabase}
+        session={session}
+      />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto h-screen custom-scrollbar flex flex-col relative w-full bg-[#090b0f] pb-24 md:pb-0 md:pl-24">
+      <main className="min-w-0 flex-1 overflow-y-auto h-screen custom-scrollbar flex flex-col relative w-full bg-[#090b0f] pb-24 md:pb-0 transition-[width,flex-basis] duration-300">
         <ViewContainer view={view} sharedViewProps={sharedViewProps} />
-
-        <Sidebar
-          view={view}
-          setView={setView}
-          setActiveGoalId={setActiveGoalId}
-        />
       </main>
 
       <ConfirmDialog
@@ -1538,21 +1534,6 @@ export default function App() {
           setNewCategory={setNewCategory}
         />
       </AnimatePresence>
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-      `}</style>
     </div>
   );
 }

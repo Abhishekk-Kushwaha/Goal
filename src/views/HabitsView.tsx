@@ -111,7 +111,7 @@ const HabitCard = ({
   habit, 
   categories, 
   isCompletedOnDate, 
-  toggleHabitOptimistic, 
+  setHabitCompletedOptimistic,
   setEditingHabit, 
   setNewHabit, 
   setIsAddingHabit,
@@ -246,7 +246,11 @@ const HabitCard = ({
         <motion.button
           onClick={(event) => {
             event.stopPropagation();
-            toggleHabitOptimistic(habit.id);
+            setHabitCompletedOptimistic(
+              habit.id,
+              getToday().toISOString(),
+              !isDoneToday,
+            );
           }}
           whileTap={{ scale: 0.97 }}
           className={cn(
@@ -286,7 +290,7 @@ export function HabitsView(props: any) {
     setIsAddingHabit,
     setEditingHabit,
     setNewHabit,
-    toggleHabitOptimistic,
+    setHabitCompletedOptimistic,
     habits = [],
     categories = [],
     CircularProgress,
@@ -463,7 +467,7 @@ export function HabitsView(props: any) {
                   habit={habit} 
                   categories={categories}
                   isCompletedOnDate={isCompletedOnDate}
-                  toggleHabitOptimistic={toggleHabitOptimistic}
+                  setHabitCompletedOptimistic={setHabitCompletedOptimistic}
                   setEditingHabit={setEditingHabit}
                   setNewHabit={setNewHabit}
                   setIsAddingHabit={setIsAddingHabit}

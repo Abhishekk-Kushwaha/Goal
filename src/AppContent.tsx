@@ -1067,6 +1067,7 @@ export default function App() {
     setNewGoal,
     setEditingHabit,
     setNewHabit,
+    setHabitCompletedOptimistic,
     toggleHabitOptimistic,
     toggleGoalCompletionOptimistic,
     toggleMilestone,

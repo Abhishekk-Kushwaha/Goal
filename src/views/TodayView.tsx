@@ -274,7 +274,7 @@ export function TodayView(props: any) {
   const FocusTaskCard = ({ task, index }: { task: any; index: number; key?: React.Key }) => {
     const isHabit = Boolean(task.isHabit);
     const color = task.categoryColor || (isHabit ? ACCENT : "#2dd4bf");
-    const title = task.title || (index === 0 ? "jjhk" : "hkj");
+    const title = task.title || "Untitled task";
     const metadata = isHabit
       ? `Habit streak: ${task.streak || 9} days`
       : [task.goalTitle, task.category].filter(Boolean).join(" · ") || "General Tasks";
@@ -334,20 +334,31 @@ export function TodayView(props: any) {
     );
   };
 
-  const EmptyFocusCard = ({ index }: { index: number }) => (
-    <FocusTaskCard
-      index={index}
-      task={{
-        title: index === 0 ? "jjhk" : "hkj",
-        goalTitle: index === 0 ? "Goal" : "Habit",
-        category: index === 0 ? "General Tasks" : undefined,
-        isHabit: index === 1,
-        streak: 9,
-        categoryColor: index === 0 ? "#2dd4bf" : ACCENT,
-        __placeholder: true,
-      }}
-    />
-  );
+  const FocusEmptyState = () => {
+    const isComplete = todayTotalCount > 0 && remainingCount === 0;
+    const Icon = isComplete ? Trophy : CheckCircle2;
+
+    return (
+      <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] px-4 py-4 shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]">
+        <div className="absolute -left-10 top-1/2 h-20 w-20 -translate-y-1/2 rounded-full bg-emerald-400/[0.035] blur-2xl" />
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] border border-emerald-300/18 bg-emerald-400/[0.08] text-emerald-200 shadow-[0_0_28px_rgba(52,211,153,0.12)]">
+            <Icon className="h-4.5 w-4.5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[16px] font-semibold leading-tight tracking-[-0.01em] text-white/88">
+              {isComplete ? "All done for today" : "Nothing scheduled today"}
+            </h3>
+            <p className="mt-1 text-[12px] font-medium leading-snug text-white/34">
+              {isComplete
+                ? "Every focus task is complete. Nice work."
+                : "Add something from the planner when you want a target."}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <motion.div
@@ -420,10 +431,7 @@ export function TodayView(props: any) {
                 <FocusTaskCard key={task.id || index} task={task} index={index} />
               ))
             ) : (
-              <>
-                <EmptyFocusCard index={0} />
-                <EmptyFocusCard index={1} />
-              </>
+              <FocusEmptyState />
             )}
           </div>
         </section>

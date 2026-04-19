@@ -30,6 +30,12 @@ export const HabitModal: React.FC<HabitModalProps> = ({
 }) => {
   if (!isAddingHabit && !editingHabit) return null;
 
+  const isScheduledHabit =
+    newHabit.repeat === "Weekly" || newHabit.repeat === "Monthly";
+  const startDateValue = newHabit.created_at
+    ? newHabit.created_at.slice(0, 10)
+    : "";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <motion.div
@@ -44,6 +50,7 @@ export const HabitModal: React.FC<HabitModalProps> = ({
             category: categories[0]?.name || "Health",
             repeat: "Daily",
             due_date: "",
+            created_at: "",
           });
         }}
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
@@ -101,7 +108,9 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                   <select
                     className="w-full dark:bg-white/5 bg-stone-100 border dark:border-white/10 border-stone-300 rounded-xl px-4 py-3 dark:text-white text-stone-900 focus:outline-none focus:border-orange-500/50 transition-colors appearance-none pr-10"
                     value={newHabit.repeat || "Daily"}
-                    onChange={(e) => setNewHabit({ ...newHabit, repeat: e.target.value as any })}
+                    onChange={(e) =>
+                      setNewHabit({ ...newHabit, repeat: e.target.value as any })
+                    }
                   >
                     <option value="Daily" className="dark:bg-[#2A2A28] bg-white">Daily</option>
                     <option value="Weekly" className="dark:bg-[#2A2A28] bg-white">Weekly</option>
@@ -111,6 +120,26 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                 </div>
               </div>
             </div>
+            {isScheduledHabit && (
+              <div>
+                <label className="block text-[9px] font-semibold uppercase tracking-widest dark:text-stone-500 text-stone-600 mb-2">
+                  Start Date <span className="text-orange-400">*</span>
+                </label>
+                <input
+                  required
+                  type="date"
+                  className="w-full dark:bg-white/5 bg-stone-100 border dark:border-white/10 border-stone-300 rounded-xl px-4 py-3 dark:text-white text-stone-900 focus:outline-none focus:border-orange-500/50 transition-colors cursor-pointer"
+                  onClick={(e) => (e.target as HTMLInputElement).showPicker()}
+                  value={startDateValue}
+                  onChange={(e) =>
+                    setNewHabit({ ...newHabit, created_at: e.target.value })
+                  }
+                />
+                <p className="mt-2 text-[11px] font-medium leading-relaxed dark:text-stone-500 text-stone-600">
+                  This decides the {newHabit.repeat === "Weekly" ? "weekday" : "monthly date"} your habit appears on and how streaks are counted.
+                </p>
+              </div>
+            )}
             <div>
               <label className="block text-[9px] font-semibold tracking-widest uppercase tracking-widest dark:text-stone-500 text-stone-600 mb-2">
                 Target End Date (Optional)
@@ -168,6 +197,7 @@ export const HabitModal: React.FC<HabitModalProps> = ({
                     category: categories[0]?.name || "Health",
                     repeat: "Daily",
                     due_date: "",
+                    created_at: "",
                   });
                 }}
                 className="flex-1 py-3 rounded-xl dark:bg-white/5 bg-stone-100 dark:text-stone-400 dark:text-stone-500 text-stone-600 font-bold text-sm hover:dark:bg-white/10 bg-stone-200 transition-colors"

@@ -116,6 +116,72 @@ export function isCompletedOnDate(item: { repeat?: string, completed_dates?: str
   });
 }
 
+function addDaysToDate(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return startOfDay(next);
+}
+
+function getLatestHabitOccurrence(habit: Habit, today = new Date()) {
+  if (!habit.created_at) return startOfDay(today);
+
+  const anchor = startOfDay(fastParseISO(habit.created_at));
+  let end = startOfDay(today);
+  if (habit.due_date) {
+    const dueDate = startOfDay(fastParseISO(habit.due_date));
+    if (dueDate < end) end = dueDate;
+  }
+  if (end < anchor) return null;
+
+  if (habit.repeat === 'Daily') return end;
+
+  if (habit.repeat === 'Weekly') {
+    const daysBack = (end.getDay() - anchor.getDay() + 7) % 7;
+    const occurrence = addDaysToDate(end, -daysBack);
+    return occurrence >= anchor ? occurrence : null;
+  }
+
+  if (habit.repeat === 'Monthly') {
+    const anchorDay = anchor.getDate();
+    for (let i = 0; i <= 24; i++) {
+      const month = end.getMonth() - i;
+      const occurrence = startOfDay(new Date(end.getFullYear(), month, anchorDay));
+      if (occurrence.getDate() !== anchorDay) continue;
+      if (occurrence > end) continue;
+      return occurrence >= anchor ? occurrence : null;
+    }
+  }
+
+  return null;
+}
+
+function getPreviousHabitOccurrence(habit: Habit, occurrence: Date) {
+  const anchor = habit.created_at ? startOfDay(fastParseISO(habit.created_at)) : null;
+  let previous: Date | null = null;
+
+  if (habit.repeat === 'Daily') {
+    previous = addDaysToDate(occurrence, -1);
+  } else if (habit.repeat === 'Weekly') {
+    previous = addDaysToDate(occurrence, -7);
+  } else if (habit.repeat === 'Monthly') {
+    const anchorDay = habit.created_at
+      ? startOfDay(fastParseISO(habit.created_at)).getDate()
+      : occurrence.getDate();
+    for (let i = 1; i <= 24; i++) {
+      const month = occurrence.getMonth() - i;
+      const candidate = startOfDay(new Date(occurrence.getFullYear(), month, anchorDay));
+      if (candidate.getDate() === anchorDay && candidate < occurrence) {
+        previous = candidate;
+        break;
+      }
+    }
+  }
+
+  if (!previous) return null;
+  if (anchor && previous < anchor) return null;
+  return previous;
+}
+
 function countTotalOccurrences(item: { created_at?: string, repeat?: string, due_date?: string, deadline?: string }) {
   if (!item.repeat || item.repeat === 'None') return 1;
   const start = item.created_at ? fastParseISO(item.created_at) : new Date();
@@ -661,7 +727,7 @@ export const storage = {
         color: habit.color || null,
         completed_dates: [],
         streak: 0,
-        created_at: new Date().toISOString()
+        created_at: habit.created_at || new Date().toISOString()
       });
 
     if (error) {
@@ -736,34 +802,22 @@ export const storage = {
 
   calculateHabitStreak(habit: Habit): number {
     if (!habit.completed_dates || habit.completed_dates.length === 0) return 0;
-    if (habit.repeat !== 'Daily') return 0;
 
-    const sortedDates = [...habit.completed_dates]
-      .map(d => startOfDay(fastParseISO(d)).getTime())
-      .sort((a, b) => b - a);
-    
-    const uniqueDates = Array.from(new Set(sortedDates));
-    if (uniqueDates.length === 0) return 0;
+    const today = startOfDay(new Date());
+    let cursor = getLatestHabitOccurrence(habit, today);
+    if (!cursor) return 0;
 
-    const today = startOfDay(new Date()).getTime();
-    const yesterday = today - 86400000;
-
-    if (uniqueDates[0] < yesterday) return 0;
+    if (!isCompletedOnDate(habit, cursor)) {
+      if (!isSameDay(cursor, today)) return 0;
+      cursor = getPreviousHabitOccurrence(habit, cursor);
+    }
 
     let streak = 0;
-    for (let i = 0; i < uniqueDates.length; i++) {
-      if (i === 0) {
-        streak = 1;
-        continue;
-      }
-      const prev = uniqueDates[i-1];
-      const expected = prev - 86400000;
-      if (uniqueDates[i] === expected) {
-        streak++;
-      } else {
-        break;
-      }
+    while (cursor && isCompletedOnDate(habit, cursor)) {
+      streak++;
+      cursor = getPreviousHabitOccurrence(habit, cursor);
     }
+
     return streak;
   }
 };

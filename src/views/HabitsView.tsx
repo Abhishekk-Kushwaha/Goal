@@ -13,13 +13,22 @@ import {
   Check, 
   Settings, 
 } from "lucide-react";
+import { isDueOnDate } from "../storage";
 
 const HABIT_SURFACE =
   "rounded-xl overflow-hidden border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]";
 const HABIT_SURFACE_UNCLIPPED =
   "rounded-xl border border-white/[0.06] bg-[linear-gradient(145deg,rgba(22,26,30,0.96),rgba(13,16,19,0.98))] shadow-[0_18px_48px_-38px_rgba(0,0,0,1)]";
+const HABIT_SUMMARY_ACCENT = "#87c4ff";
 
 type RgbColor = { r: number; g: number; b: number };
+type HabitFilter = "all" | "today" | "completed";
+
+const HABIT_FILTERS: { label: string; value: HabitFilter }[] = [
+  { label: "All", value: "all" },
+  { label: "Due today", value: "today" },
+  { label: "Completed", value: "completed" },
+];
 
 function parseHexColor(color: string): RgbColor {
   const fallback = { r: 16, g: 185, b: 129 };
@@ -77,6 +86,23 @@ function createHabitPalette(color: string) {
       rgbToString(glow, 1),
     ],
   };
+}
+
+function getToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function isHabitDueToday(habit: any, today: Date) {
+  return isDueOnDate(
+    {
+      created_at: habit.created_at,
+      repeat: habit.repeat,
+      due_date: habit.due_date,
+    },
+    today,
+  );
 }
 
 // --- Sub-components ---
@@ -266,18 +292,12 @@ export function HabitsView(props: any) {
     CircularProgress,
   } = props;
 
-  const [filter, setFilter] = useState<'all' | 'today' | 'completed'>('all');
+  const [filter, setFilter] = useState<HabitFilter>('all');
 
   // --- Calculations ---
   const stats = useMemo(() => {
-    const today = new Date();
-    const dueToday = habits.filter((h: any) => {
-      if (h.repeat === 'Daily') return true;
-      const created = new Date(h.created_at || Date.now());
-      if (h.repeat === 'Weekly') return today.getDay() === created.getDay();
-      if (h.repeat === 'Monthly') return today.getDate() === created.getDate();
-      return true;
-    });
+    const today = getToday();
+    const dueToday = habits.filter((h: any) => isHabitDueToday(h, today));
     const completedToday = dueToday.filter((h: any) => isCompletedOnDate(h, today));
     return {
       total: dueToday.length,
@@ -299,7 +319,7 @@ export function HabitsView(props: any) {
 
     habits.forEach((h: any) => {
       daysInMonth.forEach(day => {
-        if (day <= now) {
+        if (day <= now && isDueOnDate(h, day)) {
           possiblePoints++;
           if (isCompletedOnDate(h, day)) totalPoints++;
         }
@@ -310,16 +330,12 @@ export function HabitsView(props: any) {
   }, [habits, isCompletedOnDate]);
 
   const filteredHabits = useMemo(() => {
-    const today = new Date();
+    const today = getToday();
     switch (filter) {
       case 'today':
-        return habits.filter((h: any) => {
-          if (h.repeat === 'Daily') return true;
-          const created = new Date(h.created_at || Date.now());
-          if (h.repeat === 'Weekly') return today.getDay() === created.getDay();
-          if (h.repeat === 'Monthly') return today.getDate() === created.getDate();
-          return true;
-        });
+        return habits.filter(
+          (h: any) => isHabitDueToday(h, today) && !isCompletedOnDate(h, today),
+        );
       case 'completed':
         return habits.filter((h: any) => isCompletedOnDate(h, today));
       default:
@@ -345,7 +361,7 @@ export function HabitsView(props: any) {
       >
         <div className="grid grid-cols-[60px_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-5">
           <div className="shrink-0 overflow-visible">
-            <CircularProgress progress={stats.percent} size={60} strokeWidth={6} color="#a3e635" />
+            <CircularProgress progress={stats.percent} size={60} strokeWidth={6} color={HABIT_SUMMARY_ACCENT} />
           </div>
 
           <div className="min-w-0 flex-1">
@@ -364,7 +380,7 @@ export function HabitsView(props: any) {
         <div className="mt-4 sm:mt-6">
           <div className="flex items-center justify-between mb-1.5 sm:mb-2">
             <span className="text-[12px] font-medium text-white/32 tracking-wide uppercase">Today</span>
-            <span className="text-[13px] font-bold text-[#a3e635]">
+            <span className="text-[13px] font-bold text-[#87c4ff]">
               {monthlyConsistency}% <span className="text-white/24 font-medium ml-1">Avg</span>
             </span>
           </div>
@@ -373,7 +389,7 @@ export function HabitsView(props: any) {
               initial={{ width: 0 }}
               animate={{ width: `${stats.percent}%` }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-              className="h-full rounded-full bg-[#A3E635]"
+              className="h-full rounded-full bg-[linear-gradient(90deg,#87c4ff,#64d6aa)]"
             />
           </div>
         </div>
@@ -382,20 +398,21 @@ export function HabitsView(props: any) {
       {/* ───── 2. FILTER ROW ───── */}
       <div className="flex items-center gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          {(['all', 'due today', 'completed'] as const).map((t) => {
-            const filterValue = t === 'due today' ? 'today' : t;
+          {HABIT_FILTERS.map((item) => {
             return (
               <button
-                key={t}
-                onClick={() => setFilter(filterValue)}
+                key={item.value}
+                type="button"
+                aria-pressed={filter === item.value}
+                onClick={() => setFilter(item.value)}
                 className={cn(
                   "px-3 sm:px-4 py-1.5 rounded-lg text-[12px] font-medium transition-all duration-200 border tracking-wide whitespace-nowrap",
-                  filter === filterValue
+                  filter === item.value
                     ? "border-white/[0.08] bg-white/[0.08] text-white"
                     : "border-white/[0.04] bg-[linear-gradient(145deg,rgba(22,26,30,0.78),rgba(13,16,19,0.84))] text-white/38 hover:text-white/62 hover:border-white/[0.07]"
                 )}
               >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+                {item.label}
               </button>
             )
           })}
@@ -403,7 +420,7 @@ export function HabitsView(props: any) {
 
         <button
           onClick={() => setIsAddingHabit(true)}
-          className="ml-auto shrink-0 h-8 px-3 rounded-lg border border-[#A3E635]/20 bg-[#A3E635]/10 text-[#A3E635] hover:bg-[#A3E635]/14 transition-colors duration-200 flex items-center justify-center gap-1.5 text-[12px] font-semibold"
+          className="ml-auto shrink-0 h-8 px-3 rounded-lg border border-[#87c4ff]/20 bg-[#87c4ff]/10 text-[#87c4ff] hover:bg-[#87c4ff]/14 transition-colors duration-200 flex items-center justify-center gap-1.5 text-[12px] font-semibold"
           aria-label="Add habit"
         >
           <Plus className="w-4 h-4" />
@@ -465,7 +482,7 @@ export function HabitsView(props: any) {
           onClick={() => setIsAddingHabit(true)}
           className={`${HABIT_SURFACE} w-full py-4 text-white font-medium text-[15px] flex items-center justify-center gap-2 transition-colors duration-200 hover:border-white/[0.09]`}
         >
-          <Plus className="w-5 h-5 text-[#A3E635]" />
+          <Plus className="w-5 h-5 text-[#87c4ff]" />
           New Habit
         </button>
       </div>

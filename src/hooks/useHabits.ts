@@ -17,8 +17,15 @@ const getDefaultHabitForm = (categories: Category[]): Partial<Habit> => ({
   category: categories[0]?.name || "Health",
   repeat: "Daily",
   due_date: "",
+  created_at: "",
   color: "",
 });
+
+function toStartOfDayIso(date?: string) {
+  if (!date) return new Date().toISOString();
+  const day = date.slice(0, 10);
+  return new Date(`${day}T00:00:00`).toISOString();
+}
 
 export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -54,17 +61,22 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
   const handleAddHabit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving || !newHabit.title) return;
+    const repeat = newHabit.repeat || "Daily";
+    if ((repeat === "Weekly" || repeat === "Monthly") && !newHabit.created_at) {
+      return;
+    }
 
     const tempId = uid() as string;
+    const createdAt = toStartOfDayIso(newHabit.created_at);
     const optimisticHabit = {
       id: tempId,
       title: newHabit.title as string,
       description: newHabit.description || undefined,
       category: newHabit.category as string,
-      repeat: newHabit.repeat as any,
+      repeat: repeat as any,
       due_date: newHabit.due_date,
       color: newHabit.color || undefined,
-      created_at: new Date().toISOString(),
+      created_at: createdAt,
       completed_dates: [],
       streak: 0,
     };
@@ -79,7 +91,11 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
     setIsSaving(true);
     try {
       if (editingHabit) {
-        await storage.updateHabit(editingHabit.id, newHabit);
+        await storage.updateHabit(editingHabit.id, {
+          ...newHabit,
+          repeat: repeat as any,
+          created_at: createdAt,
+        });
         setEditingHabit(null);
         await fetchHabits();
       } else {

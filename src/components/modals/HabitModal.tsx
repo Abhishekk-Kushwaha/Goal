@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import type { Category, Habit } from "../../storage";
 
@@ -10,6 +10,7 @@ interface HabitModalProps {
   editingHabit: Habit | null;
   setEditingHabit: (v: Habit | null) => void;
   handleAddHabit: (e: React.FormEvent) => Promise<void>;
+  handleDeleteHabit: (id: string) => Promise<void>;
   newHabit: Partial<Habit>;
   setNewHabit: (v: Partial<Habit>) => void;
   categories: Category[];
@@ -36,12 +37,16 @@ const CANCEL_BUTTON_CLASS =
 const PRIMARY_BUTTON_CLASS =
   "flex-1 h-10 rounded-[9px] bg-[linear-gradient(180deg,#ff8a1f,#f97316)] text-[12px] font-bold text-[#231006] shadow-[0_12px_28px_-22px_rgba(249,115,22,0.95)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55";
 
+const DELETE_BUTTON_CLASS =
+  "h-10 rounded-[9px] border border-rose-400/18 bg-rose-500/8 px-3 text-[12px] font-semibold text-rose-300/82 transition-colors hover:border-rose-300/28 hover:bg-rose-500/12 hover:text-rose-200";
+
 export const HabitModal: React.FC<HabitModalProps> = ({
   isAddingHabit,
   setIsAddingHabit,
   editingHabit,
   setEditingHabit,
   handleAddHabit,
+  handleDeleteHabit,
   newHabit,
   setNewHabit,
   categories,
@@ -214,6 +219,19 @@ export const HabitModal: React.FC<HabitModalProps> = ({
               </div>
             )}
             <div className="flex gap-2 pt-1.5">
+              {editingHabit && (
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteHabit(editingHabit.id)}
+                  className={DELETE_BUTTON_CLASS}
+                  aria-label="Delete habit"
+                >
+                  <span className="flex items-center justify-center gap-1.5">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {

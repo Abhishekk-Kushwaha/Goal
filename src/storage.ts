@@ -34,6 +34,8 @@ export interface Habit {
   created_at: string;
   completed_dates: string[];
   streak: number;
+  archived_at?: string | null;
+  archive_expires_at?: string | null;
 }
 
 export interface Milestone {
@@ -62,6 +64,8 @@ export interface Goal {
   created_at?: string;
   repeat?: 'None' | 'Daily' | 'Weekly' | 'Monthly';
   completed_dates?: string[];
+  archived_at?: string | null;
+  archive_expires_at?: string | null;
 }
 
 export interface Category {
@@ -248,6 +252,16 @@ function countCompletedOccurrences(item: { repeat?: string, completed_dates?: st
   return uniquePeriods.size;
 }
 
+function isMissingColumnError(error: any) {
+  const code = String(error?.code || "");
+  const message = String(error?.message || "");
+  return (
+    code === "PGRST204" ||
+    code === "42703" ||
+    /column/i.test(message) && /could not find|does not exist|schema cache/i.test(message)
+  );
+}
+
 const DEFAULT_CATEGORIES: Category[] = [
   { id: "1", name: "Health", color: "#10b981", icon: "🏃" },
   { id: "2", name: "Career", color: "#6366f1", icon: "💼" },
@@ -285,6 +299,7 @@ export const storage = {
         .from('goals')
         .select('*')
         .eq('user_id', user.id)
+        .is('archived_at', null)
         .order('created_at', { ascending: false }),
       supabase
         .from('milestones')
@@ -316,11 +331,63 @@ export const storage = {
       return {
         ...g,
         completed_dates: g.completed_dates || [],
+        archived_at: g.archived_at || null,
+        archive_expires_at: g.archive_expires_at || null,
         milestones: goalMilestones
       };
     });
 
     return goals;
+  },
+
+  async getArchivedGoals(): Promise<Goal[]> {
+    const user = await this.getUser();
+    if (!user) return [];
+
+    const now = new Date().toISOString();
+    const [goalsResult, milestonesResult] = await Promise.all([
+      supabase
+        .from('goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .not('archived_at', 'is', null)
+        .gt('archive_expires_at', now)
+        .order('archived_at', { ascending: false }),
+      supabase
+        .from('milestones')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+    ]);
+
+    if (goalsResult.error) {
+      console.error('Error fetching archived goals:', goalsResult.error);
+      return [];
+    }
+
+    if (milestonesResult.error) {
+      console.error('Error fetching milestones for archived goals:', milestonesResult.error);
+    }
+
+    const goalsData = goalsResult.data || [];
+    const milestonesData = milestonesResult.data || [];
+
+    return goalsData.map(g => {
+      const goalMilestones = milestonesData
+        .filter(m => m.goal_id === g.id)
+        .map(m => ({
+          ...m,
+          completed_dates: m.completed_dates || []
+        }));
+
+      return {
+        ...g,
+        completed_dates: g.completed_dates || [],
+        archived_at: g.archived_at || null,
+        archive_expires_at: g.archive_expires_at || null,
+        milestones: goalMilestones
+      };
+    });
   },
 
   async addGoal(goal: Goal) {
@@ -370,13 +437,36 @@ export const storage = {
     const user = await this.getUser();
     if (!user) return;
 
+    const archivedAt = new Date();
+    const archiveExpiresAt = new Date(archivedAt);
+    archiveExpiresAt.setDate(archiveExpiresAt.getDate() + 15);
+
     const { error } = await supabase
       .from('goals')
-      .delete()
+      .update({
+        archived_at: archivedAt.toISOString(),
+        archive_expires_at: archiveExpiresAt.toISOString()
+      })
       .eq('id', id)
       .eq('user_id', user.id);
 
-    if (error) console.error('Error deleting goal:', error);
+    if (error) throw error;
+  },
+
+  async restoreGoal(id: string) {
+    const user = await this.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('goals')
+      .update({
+        archived_at: null,
+        archive_expires_at: null
+      })
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
   },
 
   async addMilestone(milestone: Milestone): Promise<Goal | null> {
@@ -746,21 +836,64 @@ export const storage = {
     const user = await this.getUser();
     if (!user) return [];
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('habits')
       .select('*')
       .eq('user_id', user.id)
+      .is('archived_at', null)
       .order('created_at', { ascending: false });
+
+    if (error && isMissingColumnError(error)) {
+      const fallback = await supabase
+        .from('habits')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      data = fallback.data;
+      error = fallback.error;
+    }
 
     if (error) {
       console.error('Error fetching habits:', error);
       return [];
     }
 
+    return (data || [])
+      .filter(h => !h.archived_at)
+      .map(h => ({
+      ...h,
+      completed_dates: h.completed_dates || [],
+      streak: this.calculateHabitStreak(h),
+      archived_at: h.archived_at || null,
+      archive_expires_at: h.archive_expires_at || null
+    }));
+  },
+
+  async getArchivedHabits(): Promise<Habit[]> {
+    const user = await this.getUser();
+    if (!user) return [];
+
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('habits')
+      .select('*')
+      .eq('user_id', user.id)
+      .not('archived_at', 'is', null)
+      .gt('archive_expires_at', now)
+      .order('archived_at', { ascending: false });
+
+    if (error) {
+      if (isMissingColumnError(error)) return [];
+      console.error('Error fetching archived habits:', error);
+      return [];
+    }
+
     return (data || []).map(h => ({
       ...h,
       completed_dates: h.completed_dates || [],
-      streak: this.calculateHabitStreak(h)
+      streak: this.calculateHabitStreak(h),
+      archived_at: h.archived_at || null,
+      archive_expires_at: h.archive_expires_at || null
     }));
   },
 
@@ -768,23 +901,37 @@ export const storage = {
     const user = await this.getUser();
     if (!user) return;
 
+    const baseHabit = {
+      id: habit.id,
+      user_id: user.id,
+      title: habit.title,
+      category: habit.category,
+      repeat: habit.repeat,
+      due_date: habit.due_date || null,
+      completed_dates: [],
+      streak: 0,
+      created_at: habit.created_at || new Date().toISOString()
+    };
+
     const { error } = await supabase
       .from('habits')
       .insert({
-        id: habit.id,
-        user_id: user.id,
-        title: habit.title,
+        ...baseHabit,
         description: habit.description || null,
-        category: habit.category,
-        repeat: habit.repeat,
-        due_date: habit.due_date || null,
-        color: habit.color || null,
-        completed_dates: [],
-        streak: 0,
-        created_at: habit.created_at || new Date().toISOString()
+        color: habit.color || null
       });
 
     if (error) {
+      if (isMissingColumnError(error)) {
+        const { error: fallbackError } = await supabase
+          .from('habits')
+          .insert(baseHabit);
+
+        if (!fallbackError) return;
+        console.error('Error adding habit:', fallbackError);
+        throw fallbackError;
+      }
+
       console.error('Error adding habit:', error);
       throw error;
     }
@@ -805,11 +952,36 @@ export const storage = {
     const user = await this.getUser();
     if (!user) return;
 
-    await supabase
+    const archivedAt = new Date();
+    const archiveExpiresAt = new Date(archivedAt);
+    archiveExpiresAt.setDate(archiveExpiresAt.getDate() + 15);
+
+    const { error } = await supabase
       .from('habits')
-      .delete()
+      .update({
+        archived_at: archivedAt.toISOString(),
+        archive_expires_at: archiveExpiresAt.toISOString()
+      })
       .eq('id', id)
       .eq('user_id', user.id);
+
+    if (error) throw error;
+  },
+
+  async restoreHabit(id: string) {
+    const user = await this.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('habits')
+      .update({
+        archived_at: null,
+        archive_expires_at: null
+      })
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
   },
 
   async setHabitCompleted(id: string, date: Date | undefined, done: boolean): Promise<Habit | null> {

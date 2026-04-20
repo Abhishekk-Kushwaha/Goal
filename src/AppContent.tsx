@@ -183,10 +183,13 @@ export default function App() {
 
   const {
     goals,
+    archivedGoals,
     setGoals,
     fetchGoals: fetchGoalList,
+    fetchArchivedGoals,
     handleAddGoal,
     handleDeleteGoal,
+    handleRestoreGoal,
     handleEditGoal,
     activeGoalId,
     setActiveGoalId,
@@ -203,10 +206,13 @@ export default function App() {
 
   const {
     habits,
+    archivedHabits,
     setHabits,
     fetchHabits,
+    fetchArchivedHabits,
     handleAddHabit,
     handleDeleteHabit,
+    handleRestoreHabit,
     handleEditHabit,
     editingHabit,
     setEditingHabit,
@@ -318,7 +324,12 @@ export default function App() {
   };
 
   const fetchGoals = async () => {
-    const [goalsData] = await Promise.all([fetchGoalList(), fetchHabits()]);
+    const [goalsData] = await Promise.all([
+      fetchGoalList(),
+      fetchArchivedGoals(),
+      fetchHabits(),
+      fetchArchivedHabits(),
+    ]);
     return goalsData;
   };
 
@@ -957,7 +968,9 @@ export default function App() {
     editMilestone,
     handleAddPlannerTask,
     handleDeleteGoal,
+    handleRestoreGoal,
     handleDeleteHabit,
+    handleRestoreHabit,
     handleDeleteCategory,
     handleMarkAllDone,
     handleToggleToday,
@@ -1001,7 +1014,9 @@ export default function App() {
     featuredGoalId,
     setFeaturedGoalId,
     goals,
+    archivedGoals,
     habits,
+    archivedHabits,
     categories,
     activeGoal,
     activeGoalId,
@@ -1071,6 +1086,7 @@ export default function App() {
           editingHabit={editingHabit}
           setEditingHabit={setEditingHabit}
           handleAddHabit={handleAddHabit}
+          handleDeleteHabit={handleDeleteHabit}
           newHabit={newHabit}
           setNewHabit={setNewHabit}
           categories={categories}

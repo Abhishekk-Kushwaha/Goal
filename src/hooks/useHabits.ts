@@ -29,6 +29,7 @@ function toStartOfDayIso(date?: string) {
 
 export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
   const [habits, setHabits] = useState<Habit[]>([]);
+  const [archivedHabits, setArchivedHabits] = useState<Habit[]>([]);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [isAddingHabit, setIsAddingHabit] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -63,6 +64,12 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
     const habitsData = await storage.getHabits();
     setHabits(habitsData);
     return habitsData;
+  };
+
+  const fetchArchivedHabits = async () => {
+    const archivedHabitsData = await storage.getArchivedHabits();
+    setArchivedHabits(archivedHabitsData);
+    return archivedHabitsData;
   };
 
   const handleAddHabit = async (e: React.FormEvent) => {
@@ -128,19 +135,46 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
   const handleDeleteHabit = async (id: string) => {
     const shouldDelete = await confirmAction({
       title: "Delete Habit?",
-      message: "This will permanently remove the habit and its completion history.",
+      message:
+        "This moves the habit to Profile archive for 15 days. Your completion history stays saved.",
       confirmLabel: "Delete",
     });
     if (!shouldDelete) return;
 
+    const habitToArchive = habits.find((habit) => habit.id === id);
     setHabits((prev) => prev.filter((h) => h.id !== id));
 
-    storage
-      .deleteHabit(id)
-      .then(() => {
-        fetchHabits();
-      })
-      .catch((err) => console.error("Failed to delete habit:", err));
+    try {
+      await storage.deleteHabit(id);
+      if (editingHabit?.id === id) {
+        setIsAddingHabit(false);
+        setEditingHabit(null);
+        setSaveError(null);
+        resetHabitForm();
+      }
+      await Promise.all([fetchHabits(), fetchArchivedHabits()]);
+    } catch (err) {
+      console.error("Failed to delete habit:", err);
+      if (habitToArchive) {
+        setHabits((prev) => [habitToArchive, ...prev]);
+      }
+      setSaveError("Failed to archive habit. Please try again.");
+    }
+  };
+
+  const handleRestoreHabit = async (id: string) => {
+    const habitToRestore = archivedHabits.find((habit) => habit.id === id);
+    setArchivedHabits((prev) => prev.filter((habit) => habit.id !== id));
+
+    try {
+      await storage.restoreHabit(id);
+      await Promise.all([fetchHabits(), fetchArchivedHabits()]);
+    } catch (err) {
+      console.error("Failed to restore habit:", err);
+      if (habitToRestore) {
+        setArchivedHabits((prev) => [habitToRestore, ...prev]);
+      }
+    }
   };
 
   const handleEditHabit = (habit: Habit) => {
@@ -158,11 +192,14 @@ export function useHabits({ categories, confirmAction }: UseHabitsOptions) {
 
   return {
     habits,
+    archivedHabits,
     setHabits,
     fetchGoals: fetchHabits,
     fetchHabits,
+    fetchArchivedHabits,
     handleAddHabit,
     handleDeleteHabit,
+    handleRestoreHabit,
     handleEditHabit,
     editingHabit,
     setEditingHabit,

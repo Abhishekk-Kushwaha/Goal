@@ -1,28 +1,25 @@
 import React from "react";
-import { format } from "date-fns";
+import {
+  eachDayOfInterval,
+  endOfYear,
+  format,
+  isAfter,
+  parseISO,
+  startOfDay,
+  startOfYear,
+  subDays,
+} from "date-fns";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  Award,
+  Archive,
   Calendar,
-  CheckCircle2,
-  Settings,
+  RotateCcw,
   Target,
-  TrendingUp,
   X,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Bar,
-  Cell,
-} from "recharts";
 import { Card } from "../components/ui/Card";
-import { CustomBarTooltip } from "../components/ui/CustomBarTooltip";
 import { cn } from "../lib/utils";
+import type { Category, Goal, Habit } from "../storage";
 
 type DashboardWidget = {
   id: "stats" | "progress";
@@ -44,9 +41,13 @@ type DashboardChartItem = {
   color: string;
 };
 
+type ProfileDayItem = {
+  done?: boolean;
+};
+
 type DashboardViewProps = {
   setIsCustomizingLayout: React.Dispatch<React.SetStateAction<boolean>>;
-  session: { user?: { email?: string | null } } | null;
+  session: { user?: { email?: string | null; created_at?: string | null } } | null;
   supabase: { auth: { signOut: () => Promise<unknown> } } | null;
   theme: string;
   currentDate: Date;
@@ -58,24 +59,155 @@ type DashboardViewProps = {
   setShowInstallHelp: React.Dispatch<React.SetStateAction<boolean>>;
   installPlatform: "prompt" | "ios" | "manual" | "installed";
   isAppInstalled: boolean;
+  archivedGoals: Goal[];
+  archivedHabits: Habit[];
+  categories: Category[];
+  handleRestoreGoal: (id: string) => Promise<void>;
+  handleRestoreHabit: (id: string) => Promise<void>;
+  getItemsForDate: (date: Date) => ProfileDayItem[];
 };
+
+function getHeatmapDotClass(progress: number, isMuted: boolean, hasWork: boolean) {
+  if (isMuted) {
+    return "border-white/[0.045] bg-white/[0.025] opacity-45";
+  }
+
+  if (!hasWork) {
+    return "border-white/[0.055] bg-white/[0.04]";
+  }
+
+  if (progress >= 100) {
+    return "border-emerald-200/45 bg-emerald-300 shadow-[0_0_11px_rgba(52,211,153,0.44)]";
+  }
+
+  if (progress >= 67) {
+    return "border-emerald-300/34 bg-emerald-400/70 shadow-[0_0_9px_rgba(52,211,153,0.25)]";
+  }
+
+  if (progress >= 34) {
+    return "border-amber-300/32 bg-amber-300/65 shadow-[0_0_8px_rgba(245,158,11,0.2)]";
+  }
+
+  return "border-orange-300/28 bg-orange-400/42";
+}
 
 export function DashboardView(props: DashboardViewProps) {
   const {
-    setIsCustomizingLayout,
     session,
     supabase,
-    theme,
     currentDate,
-    dashboardLayout,
-    stats,
-    chartData,
     requestInstallApp,
     showInstallHelp,
     setShowInstallHelp,
     installPlatform,
     isAppInstalled,
+    archivedGoals,
+    archivedHabits,
+    categories,
+    handleRestoreGoal,
+    handleRestoreHabit,
+    getItemsForDate,
   } = props;
+
+  const categoryByName = React.useMemo(() => {
+    return new Map(categories.map((category) => [category.name, category]));
+  }, [categories]);
+
+  const archiveWindowStart = React.useMemo(() => subDays(currentDate, 15), [currentDate]);
+  const todayStart = React.useMemo(() => startOfDay(currentDate), [currentDate]);
+  const signupStart = React.useMemo(() => {
+    const rawSignupDate = session?.user?.created_at;
+    if (!rawSignupDate) return todayStart;
+
+    const parsedSignupDate = parseISO(rawSignupDate);
+    return Number.isNaN(parsedSignupDate.getTime())
+      ? todayStart
+      : startOfDay(parsedSignupDate);
+  }, [session?.user?.created_at, todayStart]);
+
+  const heatmapDays = React.useMemo(() => {
+    const yearDays = eachDayOfInterval({
+      start: startOfYear(currentDate),
+      end: endOfYear(currentDate),
+    });
+
+    return yearDays.map((day) => {
+      const normalizedDay = startOfDay(day);
+      const items = getItemsForDate(normalizedDay);
+      const completed = items.filter((item) => item.done).length;
+      const total = items.length;
+      const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+      const isBeforeSignup = normalizedDay.getTime() < signupStart.getTime();
+      const isFuture = normalizedDay.getTime() > todayStart.getTime();
+
+      return {
+        date: normalizedDay,
+        key: format(normalizedDay, "yyyy-MM-dd"),
+        completed,
+        total,
+        progress,
+        hasWork: total > 0,
+        isBeforeSignup,
+        isFuture,
+      };
+    });
+  }, [currentDate, getItemsForDate, signupStart, todayStart]);
+
+  const heatmapStats = React.useMemo(() => {
+    const eligibleDays = heatmapDays.filter(
+      (day) => !day.isBeforeSignup && !day.isFuture && day.hasWork,
+    );
+    const completedDays = eligibleDays.filter((day) => day.progress === 100).length;
+    const averageProgress = eligibleDays.length
+      ? Math.round(
+          eligibleDays.reduce((sum, day) => sum + day.progress, 0) /
+            eligibleDays.length,
+        )
+      : 0;
+    const totalCompletedItems = eligibleDays.reduce(
+      (sum, day) => sum + day.completed,
+      0,
+    );
+
+    return {
+      completedDays,
+      averageProgress,
+      totalCompletedItems,
+      activeDays: eligibleDays.length,
+    };
+  }, [heatmapDays]);
+
+  const getRecentCompletionCount = (habit: Habit) => {
+    return (habit.completed_dates || []).filter((date) => {
+      const completedDate = parseISO(date);
+      return isAfter(completedDate, archiveWindowStart);
+    }).length;
+  };
+
+  const getRecentGoalPerformanceCount = (goal: Goal) => {
+    const goalRepeats = (goal.completed_dates || []).filter((date) =>
+      isAfter(parseISO(date), archiveWindowStart),
+    ).length;
+
+    const milestoneCompletions = goal.milestones.reduce((count, milestone) => {
+      if (milestone.repeat && milestone.repeat !== "None") {
+        return count + (milestone.completed_dates || []).filter((date) =>
+          isAfter(parseISO(date), archiveWindowStart),
+        ).length;
+      }
+
+      if (milestone.done && milestone.completed_at) {
+        return isAfter(parseISO(milestone.completed_at), archiveWindowStart)
+          ? count + 1
+          : count;
+      }
+
+      return count;
+    }, 0);
+
+    return goalRepeats + milestoneCompletions;
+  };
+
   return (
             <motion.div
               key="dashboard"
@@ -113,13 +245,6 @@ export function DashboardView(props: DashboardViewProps) {
                       <span className="text-sm font-medium">Sign Out</span>
                     </button>
                   )}
-                  <button
-                    onClick={() => setIsCustomizingLayout(true)}
-                    className="p-2 dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200 rounded-xl dark:text-stone-400 dark:text-stone-500 text-stone-600 hover:dark:text-white text-stone-900 transition-colors"
-                    title="Customize Layout"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </button>
                   <div className="px-4 py-2 dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200 rounded-xl flex items-center gap-3">
                     <Calendar className="w-4 h-4 dark:text-stone-500 text-stone-600" />
                     <span className="text-sm font-medium dark:text-stone-300 text-stone-700">
@@ -129,170 +254,287 @@ export function DashboardView(props: DashboardViewProps) {
                 </div>
               </header>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-max">
-                {dashboardLayout
-                  .filter((w) => w.visible)
-                  .map((widget) => {
-                    switch (widget.id) {
-                      case "stats":
-                        return (
-                          <div
-                            key="stats"
-                            className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
-                          >
-                            {[
-                              {
-                                label: "Total Goals",
-                                value: stats.total,
-                                icon: Target,
-                                color:
-                                  "text-orange-500 drop-shadow-[0_0_8px_rgba(255,87,34,0.6)]",
-                                bg: "bg-orange-500/10",
-                              },
-                              {
-                                label: "Completed",
-                                value: stats.completed,
-                                icon: Award,
-                                color: "text-indigo-400",
-                                bg: "bg-indigo-400/10",
-                              },
-                              {
-                                label: "Avg Progress",
-                                value: stats.avgProgress + "%",
-                                icon: TrendingUp,
-                                color: "text-amber-400",
-                                bg: "bg-amber-400/10",
-                              },
-                              {
-                                label: "Milestones",
-                                value: `${stats.completedMilestones}/${stats.totalMilestones}`,
-                                icon: CheckCircle2,
-                                color: "text-sky-400",
-                                bg: "bg-sky-400/10",
-                              },
-                            ].map((stat, i) => (
-                              <Card
-                                key={stat.label}
-                                className="p-5 md:p-6 transition-all duration-500 hover:-translate-y-0.5 hover:bg-white/[0.035] border border-white/[0.06] hover:border-white/[0.09] relative overflow-hidden group"
-                              >
-                                {/* Glowing accent bubble */}
-                                <div className={cn("absolute -right-4 -top-4 w-16 h-16 rounded-full blur-2xl opacity-0 group-hover:opacity-40 transition-opacity duration-500", stat.bg)} />
+              <Card
+                className="mb-6 overflow-hidden border border-emerald-200/10 bg-[radial-gradient(circle_at_16%_0%,rgba(52,211,153,0.14),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(249,115,22,0.1),transparent_30%),linear-gradient(145deg,rgba(18,22,26,0.98),rgba(8,10,13,0.99))] shadow-[0_28px_80px_-48px_rgba(52,211,153,0.58)]"
+                delay={0.16}
+              >
+                <div className="border-b border-white/[0.06] px-4 py-4 md:px-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-200/58">
+                        Year Progress
+                      </p>
+                      <h3 className="mt-2 text-[24px] font-extrabold tracking-tight text-white md:text-[28px]">
+                        {format(currentDate, "yyyy")} at a glance
+                      </h3>
+                      <p className="mt-1 max-w-xl text-[13px] font-medium leading-relaxed text-white/38">
+                        Every dot mirrors the same daily completion logic used in Today. Blank days before signup and future dates stay visible but muted.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 sm:min-w-[360px]">
+                      {[
+                        {
+                          label: "Complete days",
+                          value: `${heatmapStats.completedDays}/${heatmapStats.activeDays}`,
+                        },
+                        {
+                          label: "Avg progress",
+                          value: `${heatmapStats.averageProgress}%`,
+                        },
+                        {
+                          label: "Wins logged",
+                          value: heatmapStats.totalCompletedItems,
+                        },
+                      ].map((stat) => (
+                        <div
+                          key={stat.label}
+                          className="rounded-[10px] border border-white/[0.06] bg-white/[0.035] px-3 py-2"
+                        >
+                          <p className="truncate text-[9px] font-bold uppercase tracking-[0.16em] text-white/30">
+                            {stat.label}
+                          </p>
+                          <p className="mt-1 text-[18px] font-extrabold tabular-nums text-white/84">
+                            {stat.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-                                <div className="flex justify-between items-start mb-4">
-                                  <div
-                                    className={cn("p-2.5 rounded-xl", stat.bg)}
-                                  >
-                                    <stat.icon
-                                      className={cn("w-5 h-5", stat.color)}
-                                    />
-                                  </div>
-                                </div>
-                                <p className="dark:text-stone-500 text-stone-600 text-[9px] font-semibold tracking-widest uppercase uppercase tracking-widest mb-1">
-                                  {stat.label}
-                                </p>
-                                <h3 className="text-2xl font-extrabold dark:text-white text-stone-900 font-mono">
-                                  {stat.value}
-                                </h3>
-                              </Card>
-                            ))}
-                          </div>
-                        );
-                      case "progress":
-                        return (
-                          <Card
-                            key="progress"
-                            className="lg:col-span-2 p-6 md:p-8 transition-all duration-500 hover:-translate-y-0.5 hover:bg-white/[0.035] border border-white/[0.06] hover:border-white/[0.09] group"
-                            delay={0.2}
-                          >
-                            <div className="flex justify-between items-center mb-8">
-                              <h3 className="text-sm font-bold uppercase tracking-widest dark:text-stone-500 text-stone-600">
-                                Goal Progress
-                              </h3>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[9px] font-semibold tracking-widest uppercase dark:text-stone-400 dark:text-stone-500 text-stone-600 uppercase">
-                                  Percentage
-                                </span>
-                              </div>
-                            </div>
-                            <div className="h-[240px] w-full">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <BarChart
-                                  data={chartData}
-                                  margin={{
-                                    top: 0,
-                                    right: 0,
-                                    left: -20,
-                                    bottom: 0,
+                <div className="p-4 md:p-5">
+                  <div className="overflow-x-auto pb-2 custom-scrollbar">
+                    <div className="min-w-[760px]">
+                      <div
+                        className="grid grid-flow-col grid-rows-7 gap-[5px]"
+                        style={{
+                          gridTemplateColumns: `repeat(${Math.ceil(
+                            heatmapDays.length / 7,
+                          )}, minmax(0, 1fr))`,
+                        }}
+                      >
+                        {heatmapDays.map((day) => {
+                          const isMuted = day.isBeforeSignup || day.isFuture;
+                          const title = `${format(day.date, "MMM d, yyyy")} - ${
+                            isMuted
+                              ? day.isBeforeSignup
+                                ? "Before signup"
+                                : "Future date"
+                              : day.hasWork
+                                ? `${day.completed}/${day.total} complete (${day.progress}%)`
+                                : "No tasks scheduled"
+                          }`;
+
+                          return (
+                            <span
+                              key={day.key}
+                              title={title}
+                              aria-label={title}
+                              className={cn(
+                                "h-[9px] w-[9px] rounded-full border transition-transform duration-150 hover:scale-[1.75]",
+                                getHeatmapDotClass(day.progress, isMuted, day.hasWork),
+                              )}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.055] pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold text-white/34">
+                      <span>Less</span>
+                      {[0, 25, 50, 75, 100].map((progress) => (
+                        <span
+                          key={progress}
+                          className={cn(
+                            "h-[9px] w-[9px] rounded-full border",
+                            getHeatmapDotClass(progress, false, progress > 0),
+                          )}
+                        />
+                      ))}
+                      <span>More</span>
+                    </div>
+                    <p className="text-[11px] font-medium text-white/30">
+                      {heatmapDays.length} days shown · starts from {format(signupStart, "MMM d")}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card
+                className="overflow-hidden border border-orange-300/12 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.13),transparent_34%),linear-gradient(145deg,rgba(18,21,25,0.98),rgba(8,10,13,0.99))] shadow-[0_24px_70px_-44px_rgba(249,115,22,0.55)]"
+                delay={0.22}
+              >
+                <div className="border-b border-white/[0.06] px-4 py-4 md:px-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Archive className="h-4 w-4 text-orange-300/86" />
+                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-white/80">
+                          Archive
+                        </h3>
+                      </div>
+                      <p className="mt-1 text-[12px] font-medium text-white/36">
+                        Restore deleted goals and habits within 15 days.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-[9px] border border-white/[0.07] bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold text-white/52">
+                        {archivedGoals.length} goals
+                      </span>
+                      <span className="rounded-[9px] border border-white/[0.07] bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold text-white/52">
+                        {archivedHabits.length} habits
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-0 lg:grid-cols-2">
+                  <section className="border-b border-white/[0.06] p-4 md:p-5 lg:border-b-0 lg:border-r">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Target className="h-4 w-4 text-orange-300/82" />
+                          <h4 className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/68">
+                            Goal Archive
+                          </h4>
+                        </div>
+                        <p className="mt-1 text-[12px] font-medium text-white/34">
+                          Progress and milestones stay intact.
+                        </p>
+                      </div>
+                      <span className="rounded-[9px] border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[11px] font-semibold text-white/44">
+                        {archivedGoals.length}
+                      </span>
+                    </div>
+
+                    {archivedGoals.length === 0 ? (
+                      <div className="mt-4 rounded-[10px] border border-white/[0.06] bg-white/[0.025] px-3 py-3 text-[12px] font-medium text-white/34">
+                        No archived goals right now.
+                      </div>
+                    ) : (
+                      <div className="mt-4 grid grid-cols-1 gap-2">
+                        {archivedGoals.map((goal) => {
+                          const category = categoryByName.get(goal.category);
+                          const performanceCount = getRecentGoalPerformanceCount(goal);
+                          const completedMilestones = goal.milestones.filter((milestone) => milestone.done).length;
+                          return (
+                            <div
+                              key={goal.id}
+                              className="flex flex-col gap-3 rounded-[10px] border border-white/[0.06] bg-white/[0.025] p-3 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                <div
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] border text-[15px]"
+                                  style={{
+                                    backgroundColor: `${category?.color || "#f97316"}18`,
+                                    borderColor: `${category?.color || "#f97316"}44`,
                                   }}
                                 >
-                                  <CartesianGrid
-                                    strokeDasharray="4 4"
-                                    vertical={false}
-                                    stroke={
-                                      theme === "dark"
-                                        ? "rgba(255,255,255,0.02)"
-                                        : "rgba(0,0,0,0.02)"
-                                    }
-                                  />
-                                  <XAxis
-                                    dataKey="name"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{
-                                      fill:
-                                        theme === "dark"
-                                          ? "#64748b"
-                                          : "#94a3b8",
-                                      fontSize: 10,
-                                      fontWeight: 600,
-                                    }}
-                                    dy={10}
-                                  />
-                                  <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    tick={{
-                                      fill:
-                                        theme === "dark"
-                                          ? "#64748b"
-                                          : "#94a3b8",
-                                      fontSize: 10,
-                                    }}
-                                    allowDecimals={false}
-                                    dx={-10}
-                                  />
-                                  <Tooltip
-                                    cursor={{
-                                      fill:
-                                        theme === "dark"
-                                          ? "rgba(255,255,255,0.03)"
-                                          : "rgba(0,0,0,0.03)",
-                                    }}
-                                    content={<CustomBarTooltip />}
-                                  />
-                                  <Bar
-                                    dataKey="progress"
-                                    radius={[4, 4, 0, 0]}
-                                    barSize={32}
-                                  >
-                                    {chartData.map((entry, index) => (
-                                      <Cell
-                                        key={`cell-${index}`}
-                                        fill={entry.color}
-                                        fillOpacity={0.8}
-                                      />
-                                    ))}
-                                  </Bar>
-                                </BarChart>
-                              </ResponsiveContainer>
+                                  {category?.icon || "*"}
+                                </div>
+                                <div className="min-w-0">
+                                  <h5 className="truncate text-[14px] font-semibold text-white/86">
+                                    {goal.title}
+                                  </h5>
+                                  <p className="mt-0.5 truncate text-[11px] font-medium text-white/36">
+                                    {goal.category} / {goal.progress}% progress / {completedMilestones}/{goal.milestones.length} milestones
+                                  </p>
+                                  <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/26">
+                                    {performanceCount} recent wins / Until {goal.archive_expires_at ? format(parseISO(goal.archive_expires_at), "MMM d") : "soon"}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => void handleRestoreGoal(goal.id)}
+                                className="h-9 shrink-0 rounded-[9px] border border-orange-300/18 bg-orange-400/10 px-3 text-[12px] font-bold text-orange-200 transition-colors hover:border-orange-200/28 hover:bg-orange-400/14"
+                              >
+                                <span className="flex items-center justify-center gap-1.5">
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                  Restore
+                                </span>
+                              </button>
                             </div>
-                          </Card>
-                        );
-                      default:
-                        return null;
-                    }
-                  })}
-              </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="p-4 md:p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Archive className="h-4 w-4 text-orange-300/82" />
+                          <h4 className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/68">
+                            Habit Archive
+                          </h4>
+                        </div>
+                        <p className="mt-1 text-[12px] font-medium text-white/34">
+                          Completion history stays saved.
+                        </p>
+                      </div>
+                      <span className="rounded-[9px] border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[11px] font-semibold text-white/44">
+                        {archivedHabits.length}
+                      </span>
+                    </div>
+
+                    {archivedHabits.length === 0 ? (
+                      <div className="mt-4 rounded-[10px] border border-white/[0.06] bg-white/[0.025] px-3 py-3 text-[12px] font-medium text-white/34">
+                        No archived habits right now.
+                      </div>
+                    ) : (
+                      <div className="mt-4 grid grid-cols-1 gap-2">
+                        {archivedHabits.map((habit) => {
+                          const category = categoryByName.get(habit.category);
+                          const completionCount = getRecentCompletionCount(habit);
+                          return (
+                            <div
+                              key={habit.id}
+                              className="flex flex-col gap-3 rounded-[10px] border border-white/[0.06] bg-white/[0.025] p-3 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                <div
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] border text-[15px]"
+                                  style={{
+                                    backgroundColor: `${habit.color || category?.color || "#f97316"}18`,
+                                    borderColor: `${habit.color || category?.color || "#f97316"}44`,
+                                  }}
+                                >
+                                  {category?.icon || "*"}
+                                </div>
+                                <div className="min-w-0">
+                                  <h5 className="truncate text-[14px] font-semibold text-white/86">
+                                    {habit.title}
+                                  </h5>
+                                  <p className="mt-0.5 truncate text-[11px] font-medium text-white/36">
+                                    {habit.category} / {habit.repeat} / {completionCount} completions in 15 days
+                                  </p>
+                                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/26">
+                                    Until {habit.archive_expires_at ? format(parseISO(habit.archive_expires_at), "MMM d") : "soon"}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => void handleRestoreHabit(habit.id)}
+                                className="h-9 shrink-0 rounded-[9px] border border-orange-300/18 bg-orange-400/10 px-3 text-[12px] font-bold text-orange-200 transition-colors hover:border-orange-200/28 hover:bg-orange-400/14"
+                              >
+                                <span className="flex items-center justify-center gap-1.5">
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                  Restore
+                                </span>
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </Card>
 
               <AnimatePresence>
                 {showInstallHelp && !isAppInstalled && (

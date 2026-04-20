@@ -34,6 +34,7 @@ const getDefaultGoalForm = (categories: Category[]): GoalFormState => ({
 
 export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions) {
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [archivedGoals, setArchivedGoals] = useState<Goal[]>([]);
   const [activeGoalId, setActiveGoalId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem("forge_active_goal_id");
@@ -82,6 +83,12 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
     const goalsData = await storage.getGoals();
     setGoals(goalsData);
     return goalsData;
+  };
+
+  const fetchArchivedGoals = async () => {
+    const archivedGoalsData = await storage.getArchivedGoals();
+    setArchivedGoals(archivedGoalsData);
+    return archivedGoalsData;
   };
 
   const handleAddGoal = async (e: React.FormEvent) => {
@@ -138,11 +145,13 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
   const handleDeleteGoal = async (id: string) => {
     const shouldDelete = await confirmAction({
       title: "Delete Goal?",
-      message: "This will permanently remove the goal and its milestone progress.",
+      message:
+        "This moves the goal to Profile archive for 15 days. Goal performance and milestone progress stay saved.",
       confirmLabel: "Delete",
     });
     if (!shouldDelete) return;
 
+    const goalToArchive = goals.find((goal) => goal.id === id);
     setGoals((prev) => prev.filter((g) => g.id !== id));
 
     if (activeGoalId === id) {
@@ -150,12 +159,37 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
       setActiveGoalId(null);
     }
 
-    storage
-      .deleteGoal(id)
-      .then(() => {
-        fetchGoals();
-      })
-      .catch((err) => console.error("Failed to delete goal:", err));
+    try {
+      await storage.deleteGoal(id);
+      if (editingGoal?.id === id) {
+        setIsAddingGoal(false);
+        setEditingGoal(null);
+        setSaveError(null);
+        resetGoalForm();
+      }
+      await Promise.all([fetchGoals(), fetchArchivedGoals()]);
+    } catch (err) {
+      console.error("Failed to delete goal:", err);
+      if (goalToArchive) {
+        setGoals((prev) => [goalToArchive, ...prev]);
+      }
+      setSaveError("Failed to archive goal. Please try again.");
+    }
+  };
+
+  const handleRestoreGoal = async (id: string) => {
+    const goalToRestore = archivedGoals.find((goal) => goal.id === id);
+    setArchivedGoals((prev) => prev.filter((goal) => goal.id !== id));
+
+    try {
+      await storage.restoreGoal(id);
+      await Promise.all([fetchGoals(), fetchArchivedGoals()]);
+    } catch (err) {
+      console.error("Failed to restore goal:", err);
+      if (goalToRestore) {
+        setArchivedGoals((prev) => [goalToRestore, ...prev]);
+      }
+    }
   };
 
   const handleEditGoal = (goal: Goal) => {
@@ -180,10 +214,13 @@ export function useGoals({ categories, setView, confirmAction }: UseGoalsOptions
 
   return {
     goals,
+    archivedGoals,
     setGoals,
     fetchGoals,
+    fetchArchivedGoals,
     handleAddGoal,
     handleDeleteGoal,
+    handleRestoreGoal,
     handleEditGoal,
     activeGoalId,
     setActiveGoalId,

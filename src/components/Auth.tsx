@@ -11,34 +11,34 @@ import {
   Settings,
   Database,
   ArrowRight,
+  Target,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const shellClass =
-  'relative overflow-hidden rounded-[36px] border border-white/10 bg-[linear-gradient(160deg,rgba(18,24,33,0.94),rgba(9,13,19,0.98))] shadow-[0_32px_120px_-40px_rgba(0,0,0,0.95)] backdrop-blur-2xl';
+  'relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(160deg,rgba(15,18,30,0.88),rgba(5,7,14,0.96))] shadow-[0_28px_90px_-44px_rgba(34,64,255,0.7),0_28px_80px_-54px_rgba(0,0,0,1)] backdrop-blur-2xl sm:rounded-[34px]';
 const panelGlow =
-  'pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(135,196,255,0.14),transparent_38%),radial-gradient(circle_at_80%_18%,rgba(107,224,184,0.14),transparent_24%),linear-gradient(180deg,rgba(255,255,255,0.06),transparent_26%,transparent_78%,rgba(255,255,255,0.03))]';
+  'pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(123,154,255,0.16),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05),transparent_30%,rgba(255,255,255,0.02)_100%)]';
 const inputClass =
-  'w-full rounded-[17px] border border-[#9f9bd6]/25 bg-[#070914]/40 py-4 pl-[74px] pr-5 text-[24px] font-normal tracking-[0.02em] text-[#ebeafe] outline-none transition-all duration-300 placeholder:text-[#c4c0dc]/74 focus:border-[#8ea8ff]/65 focus:bg-[#0b0e1b]/58 focus:shadow-[0_0_0_4px_rgba(89,119,255,0.13)]';
+  'h-12 w-full rounded-[15px] border border-[#8f91bf]/24 bg-[#080a14]/62 py-0 pl-12 pr-4 text-base font-medium text-[#f2f3ff] outline-none transition-all duration-300 placeholder:text-[#b9bad3]/58 focus:border-[#8aa2ff]/70 focus:bg-[#0d1020]/74 focus:shadow-[0_0_0_4px_rgba(89,119,255,0.12)] sm:h-14 sm:rounded-[17px] sm:pl-14 sm:text-lg';
 const labelClass = 'mb-2 block text-[11px] font-semibold uppercase tracking-[0.24em] text-white/46';
 const secondaryButtonClass =
   'text-sm font-semibold text-white/56 transition-colors hover:text-white';
 
-function MiraiMark() {
+function GoalForgeMark() {
   return (
-    <div className="relative h-[82px] w-[116px]">
-      <div className="absolute left-[10px] top-[14px] h-[42px] w-[56px] rounded-[8px] bg-[linear-gradient(145deg,#6da3ff_0%,#3959ec_62%,#2731a7_100%)] shadow-[0_0_34px_rgba(84,123,255,0.72)] [clip-path:polygon(0_18%,36%_0,73%_42%,100%_13%,100%_68%,55%_100%,0_55%)]" />
-      <div className="absolute right-[5px] top-[5px] h-[66px] w-[86px] rounded-[10px] bg-[linear-gradient(145deg,#89c3ff_0%,#547cff_48%,#2738c4_100%)] shadow-[0_0_42px_rgba(105,144,255,0.72)] [clip-path:polygon(0_28%,25%_5%,48%_29%,83%_0,83%_31%,44%_82%,20%_63%,0_73%)]" />
-      <div className="absolute left-[24px] top-[48px] h-[18px] w-[47px] bg-[#080a16] [clip-path:polygon(0_76%,42%_18%,100%_77%,100%_100%,42%_43%,0_100%)]" />
+    <div className="relative flex h-14 w-14 items-center justify-center rounded-[19px] border border-[#8da2ff]/28 bg-[linear-gradient(145deg,rgba(123,154,255,0.32),rgba(32,42,104,0.54)_48%,rgba(6,9,22,0.88)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_44px_-24px_rgba(105,135,255,0.95)] sm:h-16 sm:w-16 sm:rounded-[22px]">
+      <div className="absolute inset-[5px] rounded-[15px] bg-[radial-gradient(circle_at_35%_20%,rgba(255,255,255,0.26),transparent_36%),linear-gradient(160deg,rgba(78,109,255,0.3),rgba(4,6,16,0.2))]" />
+      <Target className="relative h-7 w-7 text-[#e9efff] drop-shadow-[0_0_16px_rgba(124,155,255,0.72)] sm:h-8 sm:w-8" />
     </div>
   );
 }
 
 function GoogleGlyph() {
   return (
-    <span className="relative block h-8 w-8 rounded-full bg-[conic-gradient(from_-40deg,#4285f4_0_25%,#34a853_25%_50%,#fbbc05_50%_75%,#ea4335_75%_100%)]">
-      <span className="absolute left-1/2 top-1/2 h-[18px] w-[18px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#1c1d26]" />
-      <span className="absolute left-[17px] top-[13px] h-[8px] w-[14px] bg-[#4285f4]" />
+    <span className="relative block h-5 w-5 rounded-full bg-[conic-gradient(from_-40deg,#4285f4_0_25%,#34a853_25%_50%,#fbbc05_50%_75%,#ea4335_75%_100%)]">
+      <span className="absolute left-1/2 top-1/2 h-[11px] w-[11px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#151826]" />
+      <span className="absolute left-[11px] top-[8px] h-[5px] w-[9px] bg-[#4285f4]" />
     </span>
   );
 }
@@ -51,13 +51,12 @@ function AuthShell({
   isConfiguring?: boolean;
 }) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#03040a] px-4 py-8 text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_53%_29%,rgba(82,93,186,0.46),transparent_23%),radial-gradient(circle_at_51%_100%,rgba(103,93,171,0.46),transparent_34%),linear-gradient(180deg,#03040a_0%,#0d0e1b_47%,#04050a_100%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.34] [background-image:radial-gradient(circle_at_center,rgba(255,255,255,0.5)_0_1px,transparent_1px)] [background-size:4px_4px]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(154deg,rgba(1,2,8,0.94)_0_18%,transparent_18.2%_44%,rgba(2,3,10,0.68)_44.2%_100%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(30deg,rgba(20,25,72,0.88)_0_13%,transparent_13.2%_100%),linear-gradient(154deg,transparent_0_42%,rgba(81,68,154,0.5)_42.2%_49%,transparent_49.2%_100%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(27deg,transparent_0_24%,rgba(43,44,117,0.72)_24.2%_32%,transparent_32.2%_100%),linear-gradient(154deg,transparent_0_56%,rgba(44,40,105,0.84)_56.2%_64%,transparent_64.2%_100%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.36)_0%,transparent_28%,rgba(0,0,0,0.24)_100%)]" />
+    <div className="relative flex h-screen min-h-screen items-start justify-center overflow-y-auto overflow-x-hidden bg-[#03040a] px-4 py-5 text-white sm:items-center sm:py-8">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_16%,rgba(92,118,255,0.34),transparent_28%),radial-gradient(circle_at_50%_105%,rgba(103,86,196,0.28),transparent_34%),linear-gradient(180deg,#02040a_0%,#090b17_48%,#03040a_100%)]" />
+      <div className="pointer-events-none fixed inset-0 opacity-[0.16] [background-image:radial-gradient(circle_at_center,rgba(255,255,255,0.6)_0_1px,transparent_1px)] [background-size:5px_5px]" />
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(154deg,rgba(0,0,0,0.7)_0_20%,transparent_20.2%_66%,rgba(0,0,0,0.48)_66.2%_100%)]" />
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(28deg,transparent_0_16%,rgba(57,64,146,0.28)_16.2%_23%,transparent_23.2%_100%),linear-gradient(154deg,transparent_0_56%,rgba(72,60,157,0.3)_56.2%_64%,transparent_64.2%_100%)]" />
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.2)_0%,transparent_34%,rgba(0,0,0,0.32)_100%)]" />
       {isConfiguring ? (
         children
       ) : (
@@ -252,37 +251,37 @@ export const Auth = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative flex min-h-[calc(100vh-4rem)] w-full max-w-[900px] flex-col items-center px-3 pt-12 text-center sm:pt-16"
+        className="relative flex min-h-[calc(100vh-2.5rem)] w-full max-w-[640px] flex-col items-center justify-center px-0 py-3 text-center sm:min-h-[calc(100vh-4rem)] sm:py-6"
       >
         <div className="flex flex-col items-center">
-          <MiraiMark />
-          <h1 className="mt-2 text-[56px] font-semibold leading-none tracking-[0.16em] text-[#ecebfb] drop-shadow-[0_0_26px_rgba(212,214,255,0.18)] sm:text-[66px]">
-            Mirai
+          <GoalForgeMark />
+          <h1 className="mt-4 text-[34px] font-semibold leading-none text-[#f3f4ff] drop-shadow-[0_0_24px_rgba(129,153,255,0.22)] sm:mt-5 sm:text-[44px]">
+            GoalForge
           </h1>
-          <p className="mt-7 text-[21px] font-normal tracking-[0.13em] text-[#d7d4e8]/88 sm:text-[23px]">
+          <p className="mt-3 text-sm font-medium text-[#c7c9df]/82 sm:mt-4 sm:text-base">
             Build your life with intention.
           </p>
-          <div className="mt-9 flex items-center gap-6">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7397ff] shadow-[0_0_12px_3px_rgba(84,119,255,0.72)]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7397ff] shadow-[0_0_16px_5px_rgba(84,119,255,0.9)]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7397ff] shadow-[0_0_12px_3px_rgba(84,119,255,0.72)]" />
+          <div className="mt-4 flex items-center gap-3 sm:mt-5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#86a0ff] shadow-[0_0_10px_2px_rgba(96,126,255,0.62)]" />
+            <span className="h-1.5 w-6 rounded-full bg-[linear-gradient(90deg,#86a0ff,#5f73ff)] shadow-[0_0_13px_2px_rgba(96,126,255,0.56)]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#86a0ff] shadow-[0_0_10px_2px_rgba(96,126,255,0.62)]" />
           </div>
         </div>
 
-        <div className="relative mt-10 w-full max-w-[686px] overflow-hidden rounded-[42px] border border-[#938fe0]/38 bg-[#080a13]/58 px-9 pb-8 pt-11 shadow-[0_0_0_1px_rgba(180,178,255,0.05),inset_0_1px_0_rgba(255,255,255,0.08),0_34px_90px_-42px_rgba(0,0,0,0.95)] backdrop-blur-[18px] sm:px-[38px] sm:pb-9">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_88%_0%,rgba(126,103,220,0.22),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_22%,rgba(255,255,255,0.015)_100%)]" />
+        <div className="relative mt-5 w-[calc(100vw-32px)] max-w-[560px] overflow-hidden rounded-[26px] border border-[#8b8fbd]/24 bg-[#070914]/76 px-5 pb-5 pt-6 shadow-[0_0_0_1px_rgba(183,190,255,0.04),inset_0_1px_0_rgba(255,255,255,0.07),0_26px_76px_-48px_rgba(0,0,0,1)] backdrop-blur-[18px] sm:mt-8 sm:rounded-[32px] sm:px-8 sm:pb-8 sm:pt-8">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_0%,rgba(108,123,255,0.18),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_24%,rgba(255,255,255,0.012)_100%)]" />
 
           <div className="relative">
-            <h2 className="text-[34px] font-medium tracking-[0.06em] text-[#f0effd] sm:text-[39px]">
+            <h2 className="text-2xl font-semibold tracking-normal text-[#f5f5ff] sm:text-[32px]">
               {isSignUp ? 'Create account' : 'Welcome back'}
             </h2>
-            <p className="mt-4 text-[22px] font-normal tracking-[0.02em] text-[#c5c1dc]/82">
+            <p className="mt-2 text-sm font-medium leading-6 text-[#c3c5dc]/74 sm:mt-3 sm:text-base">
               {isSignUp
                 ? 'Start building your goals with clarity.'
                 : 'Continue building your goals with clarity.'}
             </p>
 
-            {error && <div className="mt-7"><AuthError error={error} /></div>}
+            {error && <div className="mt-4 sm:mt-6"><AuthError error={error} /></div>}
 
             {isSuccess ? (
               <div className="py-10 text-center">
@@ -308,9 +307,9 @@ export const Auth = () => {
               </div>
             ) : (
               <>
-                <form onSubmit={handleAuth} className="mt-8 space-y-4">
+                <form onSubmit={handleAuth} className="mt-5 space-y-3.5 sm:mt-7 sm:space-y-4">
                   <div className="relative">
-                    <Mail className="absolute left-[23px] top-1/2 z-10 h-8 w-8 -translate-y-1/2 stroke-[1.55] text-[#d5d2e9]/86" />
+                    <Mail className="absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 stroke-[1.7] text-[#cfd2ec]/78 sm:left-5 sm:h-5 sm:w-5" />
                     <input
                       type="email"
                       value={email}
@@ -322,12 +321,12 @@ export const Auth = () => {
                   </div>
 
                   <div className="relative">
-                    <Lock className="absolute left-[27px] top-1/2 z-10 h-7 w-7 -translate-y-1/2 stroke-[1.6] text-[#d5d2e9]/86" />
+                    <Lock className="absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 stroke-[1.7] text-[#cfd2ec]/78 sm:left-5 sm:h-5 sm:w-5" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className={`${inputClass} pr-[72px]`}
+                      className={`${inputClass} pr-12 sm:pr-14`}
                       placeholder="Password"
                       required
                       minLength={6}
@@ -335,13 +334,13 @@ export const Auth = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-[22px] top-1/2 z-10 -translate-y-1/2 p-1 text-[#d5d2e9]/70 transition-colors hover:text-white"
+                      className="absolute right-3 top-1/2 z-10 -translate-y-1/2 p-1.5 text-[#cfd2ec]/64 transition-colors hover:text-white sm:right-4"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-8 w-8 stroke-[1.5]" />
+                        <EyeOff className="h-5 w-5 stroke-[1.7]" />
                       ) : (
-                        <Eye className="h-8 w-8 stroke-[1.5]" />
+                        <Eye className="h-5 w-5 stroke-[1.7]" />
                       )}
                     </button>
                   </div>
@@ -349,22 +348,22 @@ export const Auth = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="group mt-8 flex h-[72px] w-full items-center justify-center rounded-[18px] border border-[#6585ff]/50 bg-[linear-gradient(180deg,#86b3ff_0%,#3759ea_45%,#1424a9_100%)] px-6 text-[25px] font-medium tracking-[0.05em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.42),0_0_35px_rgba(60,91,255,0.56)] transition-all duration-300 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="group mt-5 flex h-12 w-full items-center justify-center rounded-[15px] border border-[#6e85ff]/50 bg-[linear-gradient(180deg,#86a7ff_0%,#405cf0_52%,#1727a8_100%)] px-4 text-base font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_16px_38px_-24px_rgba(74,100,255,0.9)] transition-all duration-300 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:rounded-[17px] sm:px-5 sm:text-lg"
                   >
                     {isLoading ? (
-                      <Loader2 className="h-7 w-7 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
                       <>
-                        {isSignUp ? 'Create account' : 'Continue'}
-                        <ArrowRight className="ml-auto h-8 w-8 stroke-[1.4] transition-transform group-hover:translate-x-1" />
+                        <span className="flex-1 text-center">{isSignUp ? 'Create account' : 'Continue'}</span>
+                        <ArrowRight className="h-5 w-5 stroke-[1.8] transition-transform group-hover:translate-x-0.5" />
                       </>
                     )}
                   </button>
                 </form>
 
-                <div className="mt-8 flex items-center gap-4">
+                <div className="mt-5 flex items-center gap-3 sm:mt-6 sm:gap-4">
                   <div className="h-px flex-1 bg-[linear-gradient(90deg,transparent,rgba(179,175,222,0.18),rgba(179,175,222,0.04))]" />
-                  <span className="text-[20px] tracking-[0.04em] text-[#c4c0dc]/86">or continue with</span>
+                  <span className="text-xs font-medium text-[#c4c7df]/68 sm:text-sm">or continue with</span>
                   <div className="h-px flex-1 bg-[linear-gradient(90deg,rgba(179,175,222,0.04),rgba(179,175,222,0.18),transparent)]" />
                 </div>
 
@@ -372,19 +371,19 @@ export const Auth = () => {
                   type="button"
                   onClick={handleGoogleAuth}
                   disabled={isLoading}
-                  className="mx-auto mt-6 flex h-[66px] w-full max-w-[330px] items-center justify-center gap-5 rounded-[14px] border border-[#9f9bd6]/24 bg-[#1b1d2a]/60 px-7 text-[20px] font-normal tracking-[0.04em] text-[#f0effd] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:bg-[#242637]/68 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mx-auto mt-4 flex h-11 w-full max-w-[300px] items-center justify-center gap-3 rounded-[14px] border border-[#8f91bf]/24 bg-[#151826]/68 px-5 text-sm font-semibold text-[#f2f3ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:bg-[#1d2133]/76 disabled:cursor-not-allowed disabled:opacity-60 sm:mt-5 sm:h-12 sm:text-base"
                 >
                   {isLoading ? (
-                    <Loader2 className="h-7 w-7 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <>
                       <GoogleGlyph />
-                      continue with Google
+                      Continue with Google
                     </>
                   )}
                 </button>
 
-                <div className="mt-8 text-center text-[22px] tracking-[0.03em] text-[#c4c0dc]/82">
+                <div className="mt-5 text-center text-sm font-medium text-[#c4c7df]/72 sm:mt-6 sm:text-base">
                   {isSignUp ? 'Already here?' : 'New here?'}{' '}
                   <button
                     type="button"
@@ -392,7 +391,7 @@ export const Auth = () => {
                       setIsSignUp(!isSignUp);
                       setError(null);
                     }}
-                    className="font-normal text-[#80a6ff] transition-colors hover:text-white"
+                    className="font-semibold text-[#88a1ff] transition-colors hover:text-white"
                   >
                     {isSignUp ? 'Welcome back' : 'Create account'}
                   </button>

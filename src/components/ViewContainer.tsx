@@ -1,7 +1,7 @@
 import React from "react";
 import { AnimatePresence } from "motion/react";
 import { TodayView } from "../views/TodayView";
-import { DashboardView } from "../views/DashboardView";
+import { ProfileView } from "../views/ProfileView";
 import { ArchiveView } from "../views/ArchiveView";
 import { GoalsView } from "../views/GoalsView";
 import { GoalInsightsView } from "../views/GoalInsightsView";
@@ -15,7 +15,7 @@ import { InitialDataSkeleton } from "./InitialDataSkeleton";
 import type { ViewType } from "../hooks/useAppRouter";
 
 type SharedViewProps = React.ComponentProps<typeof TodayView> &
-  React.ComponentProps<typeof DashboardView> &
+  React.ComponentProps<typeof ProfileView> &
   React.ComponentProps<typeof ArchiveView> &
   React.ComponentProps<typeof GoalsView> &
   React.ComponentProps<typeof GoalInsightsView> &
@@ -47,7 +47,7 @@ export const ViewContainer: React.FC<ViewContainerProps> = ({ view, sharedViewPr
       {view === "today" ? (
         <TodayView {...sharedViewProps} />
       ) : view === "dashboard" ? (
-        <DashboardView {...sharedViewProps} />
+        <ProfileView {...sharedViewProps} />
       ) : view === "archive" ? (
         <ArchiveView {...sharedViewProps} />
       ) : view === "goals" ? (

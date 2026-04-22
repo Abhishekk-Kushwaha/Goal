@@ -20,7 +20,7 @@ const shellClass =
 const panelGlow =
   'pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(123,154,255,0.16),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.05),transparent_30%,rgba(255,255,255,0.02)_100%)]';
 const inputClass =
-  'h-12 w-full rounded-[15px] border border-[#8f91bf]/24 bg-[#080a14]/62 py-0 pl-12 pr-4 text-base font-medium text-[#f2f3ff] outline-none transition-all duration-300 placeholder:text-[#b9bad3]/58 focus:border-[#8aa2ff]/70 focus:bg-[#0d1020]/74 focus:shadow-[0_0_0_4px_rgba(89,119,255,0.12)] sm:h-14 sm:rounded-[17px] sm:pl-14 sm:text-lg';
+  'h-12 w-full rounded-[10px] border border-[#8f91bf]/24 bg-[#080a14]/62 py-0 pl-12 pr-4 text-base font-medium text-[#f2f3ff] outline-none transition-all duration-300 placeholder:text-[#b9bad3]/58 focus:border-[#8aa2ff]/70 focus:bg-[#0d1020]/74 focus:shadow-[0_0_0_4px_rgba(89,119,255,0.12)] sm:h-14 sm:rounded-[12px] sm:pl-14 sm:text-lg';
 const labelClass = 'mb-2 block text-[11px] font-semibold uppercase tracking-[0.24em] text-white/46';
 const secondaryButtonClass =
   'text-sm font-semibold text-white/56 transition-colors hover:text-white';
@@ -36,10 +36,29 @@ function GoalForgeMark() {
 
 function GoogleGlyph() {
   return (
-    <span className="relative block h-5 w-5 rounded-full bg-[conic-gradient(from_-40deg,#4285f4_0_25%,#34a853_25%_50%,#fbbc05_50%_75%,#ea4335_75%_100%)]">
-      <span className="absolute left-1/2 top-1/2 h-[11px] w-[11px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#151826]" />
-      <span className="absolute left-[11px] top-[8px] h-[5px] w-[9px] bg-[#4285f4]" />
-    </span>
+    <svg
+      className="h-5 w-5 shrink-0"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        fill="#4285F4"
+        d="M23.64 12.2c0-.82-.07-1.61-.21-2.36H12v4.46h6.54a5.6 5.6 0 0 1-2.43 3.68v2.99h3.93c2.3-2.13 3.6-5.27 3.6-8.77z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.93-2.99c-1.08.73-2.47 1.16-4.01 1.16-3.13 0-5.78-2.1-6.73-4.94H1.21v3.08A12 12 0 0 0 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.27 14.32A7.18 7.18 0 0 1 4.89 12c0-.8.14-1.58.38-2.32V6.6H1.21A12 12 0 0 0 0 12c0 1.94.46 3.78 1.21 5.4l4.06-3.08z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.74c1.76 0 3.35.6 4.6 1.8l3.43-3.43A11.54 11.54 0 0 0 12 0 12 12 0 0 0 1.21 6.6l4.06 3.08C6.22 6.84 8.87 4.74 12 4.74z"
+      />
+    </svg>
   );
 }
 
@@ -268,7 +287,7 @@ export const Auth = () => {
           </div>
         </div>
 
-        <div className="relative mt-5 w-[calc(100vw-32px)] max-w-[560px] overflow-hidden rounded-[26px] border border-[#8b8fbd]/24 bg-[#070914]/76 px-5 pb-5 pt-6 shadow-[0_0_0_1px_rgba(183,190,255,0.04),inset_0_1px_0_rgba(255,255,255,0.07),0_26px_76px_-48px_rgba(0,0,0,1)] backdrop-blur-[18px] sm:mt-8 sm:rounded-[32px] sm:px-8 sm:pb-8 sm:pt-8">
+        <div className="relative mt-5 w-[calc(100vw-32px)] max-w-[560px] overflow-hidden rounded-[18px] border border-[#8b8fbd]/24 bg-[#070914]/76 px-5 pb-5 pt-6 shadow-[0_0_0_1px_rgba(183,190,255,0.04),inset_0_1px_0_rgba(255,255,255,0.07),0_26px_76px_-48px_rgba(0,0,0,1)] backdrop-blur-[18px] sm:mt-8 sm:rounded-[22px] sm:px-8 sm:pb-8 sm:pt-8">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_0%,rgba(108,123,255,0.18),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent_24%,rgba(255,255,255,0.012)_100%)]" />
 
           <div className="relative">
@@ -348,14 +367,14 @@ export const Auth = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="group mt-5 flex h-12 w-full items-center justify-center rounded-[15px] border border-[#6e85ff]/50 bg-[linear-gradient(180deg,#86a7ff_0%,#405cf0_52%,#1727a8_100%)] px-4 text-base font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.38),0_16px_38px_-24px_rgba(74,100,255,0.9)] transition-all duration-300 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:rounded-[17px] sm:px-5 sm:text-lg"
+                    className="group mt-5 flex h-11 w-full items-center justify-center rounded-[10px] border border-white/10 bg-[linear-gradient(180deg,#6f83e8_0%,#5366cf_48%,#3b48a7_100%)] px-4 text-base font-medium text-[#f7f8ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_12px_26px_-24px_rgba(80,96,180,0.55)] transition-all duration-300 hover:bg-[linear-gradient(180deg,#7789eb_0%,#596bd2_48%,#414dab_100%)] disabled:cursor-not-allowed disabled:opacity-60 sm:h-12 sm:rounded-[12px] sm:px-4 sm:text-base"
                   >
                     {isLoading ? (
                       <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
                       <>
                         <span className="flex-1 text-center">{isSignUp ? 'Create account' : 'Continue'}</span>
-                        <ArrowRight className="h-5 w-5 stroke-[1.8] transition-transform group-hover:translate-x-0.5" />
+                        <ArrowRight className="h-5 w-5 stroke-[1.6] transition-transform group-hover:translate-x-0.5" />
                       </>
                     )}
                   </button>
@@ -371,7 +390,7 @@ export const Auth = () => {
                   type="button"
                   onClick={handleGoogleAuth}
                   disabled={isLoading}
-                  className="mx-auto mt-4 flex h-11 w-full max-w-[300px] items-center justify-center gap-3 rounded-[14px] border border-[#8f91bf]/24 bg-[#151826]/68 px-5 text-sm font-semibold text-[#f2f3ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:bg-[#1d2133]/76 disabled:cursor-not-allowed disabled:opacity-60 sm:mt-5 sm:h-12 sm:text-base"
+                  className="mx-auto mt-4 flex h-11 w-full max-w-[300px] items-center justify-center gap-3 rounded-[11px] border border-[#8f91bf]/24 bg-[#151826]/68 px-5 text-sm font-semibold text-[#f2f3ff] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:bg-[#1d2133]/76 disabled:cursor-not-allowed disabled:opacity-60 sm:mt-5 sm:h-12 sm:text-base"
                 >
                   {isLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />

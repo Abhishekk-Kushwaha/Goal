@@ -223,7 +223,7 @@ function PlannerCalendarSkeleton() {
 
 export function InitialDataSkeleton({ view }: { view: ViewType; key?: React.Key }) {
   if (view === "today") return <TodaySkeleton />;
-  if (view === "dashboard") return <DashboardSkeleton />;
+  if (view === "dashboard" || view === "archive") return <DashboardSkeleton />;
   if (view === "goals" || view === "detail") return <GoalsSkeleton />;
   if (view === "habits") return <HabitsSkeleton />;
   if (view === "planner" || view === "calendar" || view === "assign-tasks") {

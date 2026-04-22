@@ -5,6 +5,7 @@ export type ViewType =
   | "dashboard"
   | "detail"
   | "goal-insights"
+  | "archive"
   | "categories"
   | "calendar"
   | "planner"
@@ -17,6 +18,7 @@ const VALID_VIEWS: ViewType[] = [
   "dashboard",
   "detail",
   "goal-insights",
+  "archive",
   "categories",
   "calendar",
   "planner",

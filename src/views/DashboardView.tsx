@@ -3,23 +3,25 @@ import {
   eachDayOfInterval,
   endOfYear,
   format,
-  isAfter,
   parseISO,
   startOfDay,
   startOfYear,
-  subDays,
 } from "date-fns";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Archive,
   Calendar,
-  RotateCcw,
-  Target,
+  CheckCircle,
+  ChevronRight,
+  Download,
+  LogOut,
+  User,
   X,
 } from "lucide-react";
 import { Card } from "../components/ui/Card";
 import { cn } from "../lib/utils";
 import type { Category, Goal, Habit } from "../storage";
+import type { ViewType } from "../hooks/useAppRouter";
 
 type DashboardWidget = {
   id: "stats" | "progress";
@@ -46,6 +48,7 @@ type ProfileDayItem = {
 };
 
 type DashboardViewProps = {
+  setView: React.Dispatch<React.SetStateAction<ViewType>>;
   setIsCustomizingLayout: React.Dispatch<React.SetStateAction<boolean>>;
   session: { user?: { email?: string | null; created_at?: string | null } } | null;
   supabase: { auth: { signOut: () => Promise<unknown> } } | null;
@@ -93,6 +96,7 @@ function getHeatmapDotClass(progress: number, isMuted: boolean, hasWork: boolean
 
 export function DashboardView(props: DashboardViewProps) {
   const {
+    setView,
     session,
     supabase,
     currentDate,
@@ -103,17 +107,14 @@ export function DashboardView(props: DashboardViewProps) {
     isAppInstalled,
     archivedGoals,
     archivedHabits,
-    categories,
-    handleRestoreGoal,
-    handleRestoreHabit,
     getItemsForDate,
   } = props;
 
-  const categoryByName = React.useMemo(() => {
-    return new Map(categories.map((category) => [category.name, category]));
-  }, [categories]);
+  const archivedItemCount = archivedGoals.length + archivedHabits.length;
+  const archivedItemLabel = `${archivedItemCount} ${archivedItemCount === 1 ? "item" : "items"}`;
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = React.useState(false);
+  const userEmail = session?.user?.email || "Welcome back";
 
-  const archiveWindowStart = React.useMemo(() => subDays(currentDate, 15), [currentDate]);
   const todayStart = React.useMemo(() => startOfDay(currentDate), [currentDate]);
   const signupStart = React.useMemo(() => {
     const rawSignupDate = session?.user?.created_at;
@@ -177,37 +178,6 @@ export function DashboardView(props: DashboardViewProps) {
     };
   }, [heatmapDays]);
 
-  const getRecentCompletionCount = (habit: Habit) => {
-    return (habit.completed_dates || []).filter((date) => {
-      const completedDate = parseISO(date);
-      return isAfter(completedDate, archiveWindowStart);
-    }).length;
-  };
-
-  const getRecentGoalPerformanceCount = (goal: Goal) => {
-    const goalRepeats = (goal.completed_dates || []).filter((date) =>
-      isAfter(parseISO(date), archiveWindowStart),
-    ).length;
-
-    const milestoneCompletions = goal.milestones.reduce((count, milestone) => {
-      if (milestone.repeat && milestone.repeat !== "None") {
-        return count + (milestone.completed_dates || []).filter((date) =>
-          isAfter(parseISO(date), archiveWindowStart),
-        ).length;
-      }
-
-      if (milestone.done && milestone.completed_at) {
-        return isAfter(parseISO(milestone.completed_at), archiveWindowStart)
-          ? count + 1
-          : count;
-      }
-
-      return count;
-    }, 0);
-
-    return goalRepeats + milestoneCompletions;
-  };
-
   return (
             <motion.div
               key="dashboard"
@@ -216,41 +186,82 @@ export function DashboardView(props: DashboardViewProps) {
               exit={{ opacity: 0 }}
               className="p-4 md:p-8 max-w-6xl mx-auto w-full"
             >
-              <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-10 gap-4">
-                <div>
-                  <h2 className="text-2xl md:text-3xl font-extrabold font-mono-nums dark:text-white text-stone-900 tracking-tight mb-2">
+              <header className="mb-8 flex flex-col gap-4 md:mb-10 md:flex-row md:items-end md:justify-between">
+                <div className="min-w-0">
+                  <h2 className="text-2xl md:text-3xl font-extrabold font-mono-nums dark:text-white text-stone-900 tracking-tight">
                     Profile
                   </h2>
-                  <p className="dark:text-stone-400 dark:text-stone-500 text-stone-600 text-sm">
-                    {session?.user?.email || "Welcome back"}
+                  <p className="mt-2 max-w-full truncate text-sm font-medium dark:text-stone-400 text-stone-600">
+                    {userEmail}
                   </p>
                 </div>
-                <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                  <button
-                    onClick={requestInstallApp}
-                    className={cn(
-                      "px-4 py-2 rounded-xl border transition-colors flex items-center gap-2 text-sm font-medium",
-                      isAppInstalled
-                        ? "dark:bg-emerald-500/10 bg-emerald-50 border-emerald-400/20 text-emerald-400"
-                        : "dark:bg-sky-500/10 bg-sky-50 border-sky-400/20 text-sky-400 hover:dark:bg-sky-500/15 hover:bg-sky-100",
-                    )}
-                  >
-                    <span>{isAppInstalled ? "App Installed" : "Install App"}</span>
-                  </button>
-                  {supabase && session && (
-                    <button
-                      onClick={() => supabase.auth.signOut()}
-                      className="p-2 dark:bg-rose-500/10 bg-rose-50 border dark:border-rose-500/20 border-rose-200 rounded-xl text-rose-500 hover:bg-rose-500 hover:text-white transition-colors flex items-center gap-2"
-                    >
-                      <span className="text-sm font-medium">Sign Out</span>
-                    </button>
-                  )}
-                  <div className="px-4 py-2 dark:bg-white/5 bg-stone-100 border dark:border-white/5 border-stone-200 rounded-xl flex items-center gap-3">
-                    <Calendar className="w-4 h-4 dark:text-stone-500 text-stone-600" />
-                    <span className="text-sm font-medium dark:text-stone-300 text-stone-700">
+
+                <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
+                  <div className="flex h-10 items-center gap-2 rounded-[9px] border dark:border-white/[0.07] border-stone-200 dark:bg-white/[0.035] bg-stone-100 px-3 text-sm font-medium dark:text-white/58 text-stone-600">
+                    <Calendar className="h-4 w-4 dark:text-white/38 text-stone-500" />
+                    <span className="whitespace-nowrap">
                       {format(currentDate, "EEEE, MMM do")}
                     </span>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={requestInstallApp}
+                    className={cn(
+                      "flex h-10 items-center gap-2 rounded-[9px] border px-3 text-sm font-semibold transition-colors",
+                      isAppInstalled
+                        ? "border-emerald-300/14 bg-emerald-400/[0.07] text-emerald-200/82"
+                        : "border-white/[0.07] bg-white/[0.035] text-white/62 hover:bg-white/[0.055] hover:text-white/84",
+                    )}
+                  >
+                    {isAppInstalled ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    <span>{isAppInstalled ? "Installed" : "Install"}</span>
+                  </button>
+
+                  {supabase && session && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsAccountMenuOpen((open) => !open)}
+                        aria-label="Open account menu"
+                        className="flex h-10 w-10 items-center justify-center rounded-[9px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.065),rgba(255,255,255,0.025))] text-sm font-bold uppercase text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors hover:bg-white/[0.07] hover:text-white"
+                      >
+                        <User className="h-4 w-4" />
+                      </button>
+
+                      {isAccountMenuOpen && (
+                        <div className="absolute right-0 top-12 z-30 w-[260px] overflow-hidden rounded-[12px] border border-white/[0.08] bg-[#11161c]/95 shadow-[0_24px_70px_-42px_rgba(0,0,0,1)] backdrop-blur-xl">
+                          <div className="border-b border-white/[0.06] p-4">
+                            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[9px] border border-white/[0.07] bg-white/[0.04] text-white/68">
+                              <User className="h-4 w-4" />
+                            </div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30">
+                              Signed in as
+                            </p>
+                            <p className="mt-1 truncate text-sm font-semibold text-white/82">
+                              {userEmail}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAccountMenuOpen(false);
+                              void supabase.auth.signOut();
+                            }}
+                            className="flex h-12 w-full items-center gap-3 px-4 text-left text-sm font-semibold text-rose-200/82 transition-colors hover:bg-rose-400/[0.08] hover:text-rose-100"
+                          >
+                            <LogOut className="h-4 w-4" />
+                            Sign out
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </header>
 
@@ -363,177 +374,38 @@ export function DashboardView(props: DashboardViewProps) {
               </Card>
 
               <Card
-                className="overflow-hidden border border-orange-300/12 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.13),transparent_34%),linear-gradient(145deg,rgba(18,21,25,0.98),rgba(8,10,13,0.99))] shadow-[0_24px_70px_-44px_rgba(249,115,22,0.55)]"
+                className="overflow-hidden border border-white/[0.07] bg-[linear-gradient(145deg,rgba(17,21,24,0.98),rgba(8,10,13,0.99))] shadow-[0_20px_56px_-44px_rgba(0,0,0,1)]"
                 delay={0.22}
               >
-                <div className="border-b border-white/[0.06] px-4 py-4 md:px-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
+                <button
+                  type="button"
+                  onClick={() => setView("archive")}
+                  className="group flex w-full items-center justify-between gap-4 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.025] md:px-5"
+                >
+                  <div className="flex min-w-0 items-center gap-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[12px] border border-orange-300/14 bg-orange-400/[0.08] text-orange-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                      <Archive className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <Archive className="h-4 w-4 text-orange-300/86" />
-                        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-white/80">
+                        <h3 className="truncate text-[17px] font-semibold tracking-[-0.01em] text-white/88">
                           Archive
                         </h3>
                       </div>
-                      <p className="mt-1 text-[12px] font-medium text-white/36">
+                      <p className="mt-1 truncate text-[12px] font-medium text-white/38 sm:text-[13px]">
                         Restore deleted goals and habits within 15 days.
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-[9px] border border-white/[0.07] bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold text-white/52">
-                        {archivedGoals.length} goals
-                      </span>
-                      <span className="rounded-[9px] border border-white/[0.07] bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold text-white/52">
-                        {archivedHabits.length} habits
-                      </span>
-                    </div>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-0 lg:grid-cols-2">
-                  <section className="border-b border-white/[0.06] p-4 md:p-5 lg:border-b-0 lg:border-r">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Target className="h-4 w-4 text-orange-300/82" />
-                          <h4 className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/68">
-                            Goal Archive
-                          </h4>
-                        </div>
-                        <p className="mt-1 text-[12px] font-medium text-white/34">
-                          Progress and milestones stay intact.
-                        </p>
-                      </div>
-                      <span className="rounded-[9px] border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[11px] font-semibold text-white/44">
-                        {archivedGoals.length}
-                      </span>
-                    </div>
-
-                    {archivedGoals.length === 0 ? (
-                      <div className="mt-4 rounded-[10px] border border-white/[0.06] bg-white/[0.025] px-3 py-3 text-[12px] font-medium text-white/34">
-                        No archived goals right now.
-                      </div>
-                    ) : (
-                      <div className="mt-4 grid grid-cols-1 gap-2">
-                        {archivedGoals.map((goal) => {
-                          const category = categoryByName.get(goal.category);
-                          const performanceCount = getRecentGoalPerformanceCount(goal);
-                          const completedMilestones = goal.milestones.filter((milestone) => milestone.done).length;
-                          return (
-                            <div
-                              key={goal.id}
-                              className="flex flex-col gap-3 rounded-[10px] border border-white/[0.06] bg-white/[0.025] p-3 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <div className="flex min-w-0 items-center gap-3">
-                                <div
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] border text-[15px]"
-                                  style={{
-                                    backgroundColor: `${category?.color || "#f97316"}18`,
-                                    borderColor: `${category?.color || "#f97316"}44`,
-                                  }}
-                                >
-                                  {category?.icon || "*"}
-                                </div>
-                                <div className="min-w-0">
-                                  <h5 className="truncate text-[14px] font-semibold text-white/86">
-                                    {goal.title}
-                                  </h5>
-                                  <p className="mt-0.5 truncate text-[11px] font-medium text-white/36">
-                                    {goal.category} / {goal.progress}% progress / {completedMilestones}/{goal.milestones.length} milestones
-                                  </p>
-                                  <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-white/26">
-                                    {performanceCount} recent wins / Until {goal.archive_expires_at ? format(parseISO(goal.archive_expires_at), "MMM d") : "soon"}
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => void handleRestoreGoal(goal.id)}
-                                className="h-9 shrink-0 rounded-[9px] border border-orange-300/18 bg-orange-400/10 px-3 text-[12px] font-bold text-orange-200 transition-colors hover:border-orange-200/28 hover:bg-orange-400/14"
-                              >
-                                <span className="flex items-center justify-center gap-1.5">
-                                  <RotateCcw className="h-3.5 w-3.5" />
-                                  Restore
-                                </span>
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
-
-                  <section className="p-4 md:p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Archive className="h-4 w-4 text-orange-300/82" />
-                          <h4 className="text-[12px] font-bold uppercase tracking-[0.18em] text-white/68">
-                            Habit Archive
-                          </h4>
-                        </div>
-                        <p className="mt-1 text-[12px] font-medium text-white/34">
-                          Completion history stays saved.
-                        </p>
-                      </div>
-                      <span className="rounded-[9px] border border-white/[0.07] bg-white/[0.035] px-2.5 py-1 text-[11px] font-semibold text-white/44">
-                        {archivedHabits.length}
-                      </span>
-                    </div>
-
-                    {archivedHabits.length === 0 ? (
-                      <div className="mt-4 rounded-[10px] border border-white/[0.06] bg-white/[0.025] px-3 py-3 text-[12px] font-medium text-white/34">
-                        No archived habits right now.
-                      </div>
-                    ) : (
-                      <div className="mt-4 grid grid-cols-1 gap-2">
-                        {archivedHabits.map((habit) => {
-                          const category = categoryByName.get(habit.category);
-                          const completionCount = getRecentCompletionCount(habit);
-                          return (
-                            <div
-                              key={habit.id}
-                              className="flex flex-col gap-3 rounded-[10px] border border-white/[0.06] bg-white/[0.025] p-3 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <div className="flex min-w-0 items-center gap-3">
-                                <div
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] border text-[15px]"
-                                  style={{
-                                    backgroundColor: `${habit.color || category?.color || "#f97316"}18`,
-                                    borderColor: `${habit.color || category?.color || "#f97316"}44`,
-                                  }}
-                                >
-                                  {category?.icon || "*"}
-                                </div>
-                                <div className="min-w-0">
-                                  <h5 className="truncate text-[14px] font-semibold text-white/86">
-                                    {habit.title}
-                                  </h5>
-                                  <p className="mt-0.5 truncate text-[11px] font-medium text-white/36">
-                                    {habit.category} / {habit.repeat} / {completionCount} completions in 15 days
-                                  </p>
-                                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/26">
-                                    Until {habit.archive_expires_at ? format(parseISO(habit.archive_expires_at), "MMM d") : "soon"}
-                                  </p>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => void handleRestoreHabit(habit.id)}
-                                className="h-9 shrink-0 rounded-[9px] border border-orange-300/18 bg-orange-400/10 px-3 text-[12px] font-bold text-orange-200 transition-colors hover:border-orange-200/28 hover:bg-orange-400/14"
-                              >
-                                <span className="flex items-center justify-center gap-1.5">
-                                  <RotateCcw className="h-3.5 w-3.5" />
-                                  Restore
-                                </span>
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </section>
-                </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="rounded-[9px] border border-orange-300/14 bg-orange-400/[0.06] px-2.5 py-1 text-[11px] font-bold text-orange-200/82">
+                      {archivedItemLabel}
+                    </span>
+                    <ChevronRight
+                      className="h-5 w-5 text-white/42 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-white/62"
+                    />
+                  </div>
+                </button>
               </Card>
 
               <AnimatePresence>

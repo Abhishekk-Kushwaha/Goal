@@ -1,9 +1,9 @@
 import React from "react";
 import { format } from "date-fns";
 import { AnimatePresence, motion } from "motion/react";
-import { ChevronDown } from "lucide-react";
 import {
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Flame,
   Target,
@@ -58,7 +58,6 @@ type TodayViewProps = {
 
 const ACCENT = "#34d399";
 const ACCENT_DEEP = "#0f766e";
-const AMBER = "#f59e0b";
 
 function hexToRgba(hex: string, alpha: number) {
   const normalized = hex.replace("#", "");
@@ -116,17 +115,17 @@ export function TodayView(props: TodayViewProps) {
       day.setDate(day.getDate() - (6 - index));
       const items = getItemsForDate(day);
       const done = items.filter((item) => item.done).length;
-      const progress = items.length === 0 ? 0 : Math.round((done / items.length) * 100);
+      const total = items.length;
+      const progress = total === 0 ? 0 : Math.round((done / total) * 100);
       return {
         day,
         progress,
-        hasWork: items.length > 0,
         label: format(day, "EEEEE"),
       };
     });
   }, [getItemsForDate]);
 
-  const chart = {
+  const weeklyChart = {
     width: 320,
     height: 170,
     baseline: 128,
@@ -139,20 +138,16 @@ export function TodayView(props: TodayViewProps) {
 
   const momentumPoints = weekStats.map((day, index) => {
     const visualHeight =
-      chart.minBarHeight +
-      (day.progress / 100) * (chart.maxBarHeight - chart.minBarHeight);
-    const x = chart.left + index * chart.step;
-    const y = chart.baseline - visualHeight;
+      weeklyChart.minBarHeight +
+      (day.progress / 100) * (weeklyChart.maxBarHeight - weeklyChart.minBarHeight);
+    const x = weeklyChart.left + index * weeklyChart.step;
+    const y = weeklyChart.baseline - visualHeight;
     return { ...day, visualHeight, x, y };
   });
 
   const momentumPath = momentumPoints
     .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
     .join(" ");
-
-  const openFocus = () => {
-    if (focusTask) setIsFocusMode(true);
-  };
 
   const TaskIcon = ({
     color = ACCENT,
@@ -264,7 +259,11 @@ export function TodayView(props: TodayViewProps) {
   const MomentumCard = () => (
     <PremiumSurface className="p-4">
       <div className="relative h-[190px]">
-        <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${chart.width} ${chart.height}`} preserveAspectRatio="none">
+        <svg
+          className="absolute inset-0 h-full w-full overflow-visible"
+          viewBox={`0 0 ${weeklyChart.width} ${weeklyChart.height}`}
+          preserveAspectRatio="none"
+        >
           <path
             d={momentumPath}
             fill="none"
@@ -280,18 +279,24 @@ export function TodayView(props: TodayViewProps) {
                 <line
                   x1={day.x}
                   x2={day.x}
-                  y1={chart.baseline}
-                  y2={chart.baseline - day.visualHeight}
-                  stroke={isHighlight ? "url(#momentumBar)" : "rgba(255,255,255,0.25)"}
+                  y1={weeklyChart.baseline}
+                  y2={weeklyChart.baseline - day.visualHeight}
+                  stroke={
+                    isHighlight
+                      ? "url(#momentumBar)"
+                      : "rgba(255,255,255,0.25)"
+                  }
                   strokeWidth="16"
                   strokeLinecap="round"
                   style={{
-                    filter: isHighlight ? "drop-shadow(0 0 14px rgba(52,211,153,0.36))" : undefined,
+                    filter: isHighlight
+                      ? "drop-shadow(0 0 14px rgba(52,211,153,0.36))"
+                      : undefined,
                   }}
                 />
                 <text
                   x={day.x}
-                  y={chart.labelY}
+                  y={weeklyChart.labelY}
                   textAnchor="middle"
                   className="fill-white/25 text-[10px] font-semibold"
                 >
@@ -301,7 +306,14 @@ export function TodayView(props: TodayViewProps) {
             );
           })}
           <defs>
-            <linearGradient id="momentumBar" x1="0" y1={chart.baseline} x2="0" y2="16" gradientUnits="userSpaceOnUse">
+            <linearGradient
+              id="momentumBar"
+              x1="0"
+              y1={weeklyChart.baseline}
+              x2="0"
+              y2="16"
+              gradientUnits="userSpaceOnUse"
+            >
               <stop stopColor="#059669" />
               <stop offset="0.55" stopColor={ACCENT} />
               <stop offset="1" stopColor="#a7f3d0" />

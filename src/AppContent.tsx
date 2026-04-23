@@ -346,7 +346,6 @@ export default function App() {
   });
 
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [todayGraphView, setTodayGraphView] = useState<"week" | "month">("week");
   const [completedExpanded, setCompletedExpanded] = useState(false);
   const [showMomentumMobile, setShowMomentumMobile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -937,8 +936,6 @@ export default function App() {
     setCurrentMonth,
     setIsFocusMode,
     isFocusMode,
-    setTodayGraphView,
-    todayGraphView,
     setCompletedExpanded,
     completedExpanded,
     setShowMomentumMobile,

@@ -1,5 +1,7 @@
-const APP_CACHE = "goalforge-app-v1";
-const RUNTIME_CACHE = "goalforge-runtime-v1";
+const VERSION = new URL(self.location.href).searchParams.get("v") || "v1";
+const CACHE_PREFIX = "goalforge-";
+const APP_CACHE = `${CACHE_PREFIX}app-${VERSION}`;
+const RUNTIME_CACHE = `${CACHE_PREFIX}runtime-${VERSION}`;
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -8,8 +10,9 @@ self.addEventListener("install", (event) => {
       cache.addAll([
         "/",
         "/manifest.webmanifest",
-        "/pwa-icon.svg",
-        "/pwa-maskable.svg",
+        "/pwa-icon-192.png",
+        "/pwa-icon-512.png",
+        "/pwa-maskable-512.png",
       ]),
     ),
   );
@@ -20,7 +23,11 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => ![APP_CACHE, RUNTIME_CACHE].includes(key))
+          .filter(
+            (key) =>
+              key.startsWith(CACHE_PREFIX) &&
+              ![APP_CACHE, RUNTIME_CACHE].includes(key),
+          )
           .map((key) => caches.delete(key)),
       ),
     ).then(() => self.clients.claim()),
@@ -36,10 +43,21 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(async () => {
-        const cached = await caches.match("/");
-        return cached || Response.error();
-      }),
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            const clone = response.clone();
+            caches.open(APP_CACHE).then((cache) => cache.put("/", clone));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cachedPage = await caches.match(request);
+          if (cachedPage) return cachedPage;
+
+          const cachedHome = await caches.match("/");
+          return cachedHome || Response.error();
+        }),
     );
     return;
   }

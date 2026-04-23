@@ -3,6 +3,11 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
+const appVersion =
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.GITHUB_SHA ||
+  new Date().toISOString();
+
 function getManualChunk(id: string) {
   if (!id.includes('node_modules')) return undefined;
 
@@ -40,6 +45,9 @@ function getManualChunk(id: string) {
 export default defineConfig(({mode}) => {
   return {
     plugins: [react(), tailwindcss()],
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
